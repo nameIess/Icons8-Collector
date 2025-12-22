@@ -51,6 +51,7 @@ coverage.xml
 # ================================
 # Browser session data - contains login cookies
 .browser_data/
+todo.md
 
 # Downloaded icons output
 /data/
@@ -107,4 +108,3 @@ test-results/
 *.temp
 todo.md
 .cache/
-suggestion.txt

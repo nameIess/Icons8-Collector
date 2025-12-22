@@ -1,194 +1,189 @@
 # 🎨 Icons8 Collector
 
-Download icons from your Icons8 collections with ease. Supports PNG and ICO formats with automatic conversion.
-
-## 📥 Set-Up
-
-**[⬇️ Download ](https://github.com/nameIess/Icons8-Collector/archive/refs/heads/master.zip)**
-
-Or clone the repository:
-
-```bash
-git clone https://github.com/nameIess/Icons8-Collector.git
-cd Icons8-Collector
-```
+A Python tool to download icons from your Icons8 collections. Supports PNG and ICO formats with automatic conversion.
 
 ## ✨ Features
 
-- 🔐 **Automatic login** - Logs into your Icons8 account automatically
-- 💾 **Session caching** - Remembers your login (no need to login every time)
-- 🖼️ **Multiple formats** - Download as PNG, ICO, or both
-- 📐 **Custom sizes** - Choose from 64px to 512px (or custom)
-- 🤖 **Headless mode** - Runs invisibly in the background
-- 🎛️ **Interactive UI** - Beautiful terminal interface
+- 🔐 Automatic login with session reuse (no repeated logins)
+- 💾 Session caching for faster subsequent runs
+- 🖼️ Multiple output formats: PNG, ICO, or both
+- 📐 Flexible icon sizes: 64–512px (or custom)
+- 🤖 Headless browser mode (default)
+- 🎛️ Interactive terminal UI or command-line interface
+- 🛡️ Fail-fast error handling with clear error messages
+- 📦 Bulk download entire collections
 
-## 🚀 Quick Start
+## 📋 Requirements
 
-### Installation
+- Python 3.10 or higher
+- Windows, macOS, or Linux
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
+## 📥 Installation
 
-# Install Playwright browser
-python -m playwright install chromium
-```
+1. **Clone or download the repository:**
 
-### Usage
+   ```bash
+   git clone https://github.com/nameIess/Icons8-Collector.git
+   cd Icons8-Collector
+   ```
 
-#### One-liner (recommended for scripts):
+   Or [download as ZIP](https://github.com/nameIess/Icons8-Collector/archive/refs/heads/master.zip)
 
-```bash
-python Icons8-Collector.py --url "https://icons8.com/icons/collections/YOUR_COLLECTION_ID" --email "your@email.com" --password "yourpassword"
-```
+2. **Create and activate a virtual environment (recommended):**
 
-#### Interactive mode (just run without arguments):
+   ```bash
+   python -m venv venv
+   ```
 
-```bash
-python Icons8-Collector.py
-```
+   - **Windows:**
+     ```bash
+     venv\Scripts\activate
+     ```
+   - **macOS/Linux:**
+     ```bash
+     source venv/bin/activate
+     ```
 
-This opens a nice terminal UI where you can enter all options step by step.
+3. **Install Python dependencies:**
 
-## 📋 Command Line Options
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-| Option          | Alias | Default | Description                             |
-| --------------- | ----- | ------- | --------------------------------------- |
-| `--url`         | `-u`  | -       | Collection URL (required)               |
-| `--email`       | `-e`  | -       | Icons8 account email                    |
-| `--password`    | `-P`  | -       | Icons8 account password                 |
-| `--format`      | `-f`  | `ico`   | Output format: `png`, `ico`, or `both`  |
-| `--size`        | `-z`  | `256`   | Icon size in pixels (64, 128, 256, 512) |
-| `--output`      | `-o`  | `data`  | Output directory path                   |
-| `--visible`     | `-v`  | `false` | Show browser window (for debugging)     |
-| `--interactive` | `-i`  | `false` | Force interactive mode with terminal UI |
-| `--help`        | `-h`  | -       | Show help message and exit              |
+4. **Install Playwright browser:**
 
-### Option Details
+   ```bash
+   python -m playwright install chromium
+   ```
 
-```
---url, -u           Required. The Icons8 collection URL
-                    Example: https://icons8.com/icons/collections/abc123
+## 🚀 Usage
 
---email, -e         Your Icons8 account email address
-                    Leave empty to use cached login session
+### Interactive Mode
 
---password, -P      Your Icons8 account password (capital P)
-                    Only needed if not already logged in
-
---format, -f        Choose output format:
-                    • png  - PNG files only
-                    • ico  - ICO files only (default, deletes PNG after conversion)
-                    • both - Keep both PNG and ICO files
-
---size, -z          Icon size in pixels. Common values:
-                    • 64   - Small
-                    • 128  - Medium
-                    • 256  - Large (default, best quality)
-                    • 512  - Extra large
-
---output, -o        Directory where icons will be saved
-                    Default: ./data/
-
---visible, -v       Show the browser window during scraping
-                    Useful for debugging login issues
-
---interactive, -i   Launch interactive terminal UI
-                    Prompts for all options step by step
-```
-
-## 📝 Examples
-
-### Download collection as ICO files (default):
+Run without arguments for an interactive menu:
 
 ```bash
-python Icons8-Collector.py --url "https://icons8.com/icons/collections/abc123" --email "me@email.com" --password "mypass"
+python run.py
 ```
 
-### Download as PNG with custom size:
+The interactive interface will guide you through:
+
+- Collection URL input
+- Authentication (optional)
+- Output format selection (PNG, ICO, or both)
+- Icon size selection
+- Browser display mode
+
+### Command Line Mode
 
 ```bash
-python Icons8-Collector.py --url "https://icons8.com/icons/collections/abc123" --email "me@email.com" --password "mypass" --format png --size 512
+python run.py --url "https://icons8.com/icons/collections/YOUR_COLLECTION_ID" [options]
 ```
 
-### Download both PNG and ICO:
+#### Command Line Options
+
+| Option (Long)   | Shortcut | Description                                       | Default |
+| --------------- | -------- | ------------------------------------------------- | ------- |
+| `--url`         | `-u`     | Icons8 collection URL (required)                  | —       |
+| `--email`       | `-e`     | Icons8 account email (required for first time)    | —       |
+| `--password`    | `-P`     | Icons8 account password (required for first time) | —       |
+| `--format`      | `-f`     | Output format: `png`, `ico`, or `both`            | `ico`   |
+| `--size`        | `-z`     | Icon size in pixels (64–512)                      | `256`   |
+| `--output`      | `-o`     | Output directory path                             | `data`  |
+| `--visible`     | `-v`     | Show browser window (headless by default)         | `False` |
+| `--interactive` | `-i`     | Run in interactive mode (prompts for input)       | `False` |
+| `--help`        | `-h`     | Show help message and exit                        | —       |
+
+#### Examples
+
+**Download both PNG and ICO with authentication:**
 
 ```bash
-python Icons8-Collector.py --url "https://icons8.com/icons/collections/abc123" --email "me@email.com" --password "mypass" --format both
+python run.py --url "https://icons8.com/icons/collections/12345" \
+              --email your@email.com \
+              --password yourpassword \
+              --format both \
+              --size 128
 ```
 
-### Run with visible browser (for debugging):
+> ⚠️ **Security Note:** Passing passwords via command-line arguments may expose them in shell history or process lists. For better security, use interactive mode (`python run.py`) or set environment variables.
+
+**Download ICO only at 512px with visible browser:**
 
 ```bash
-python Icons8-Collector.py --url "https://icons8.com/icons/collections/abc123" --email "me@email.com" --password "mypass" --visible
+python run.py --url "https://icons8.com/icons/collections/12345" \
+              --format ico \
+              --size 512 \
+              --visible
 ```
 
 ## 📁 Output Structure
 
+Downloaded icons are saved to the specified output directory (default: `./data`):
+
 ```
 data/
-├── Collection_PNG/     # PNG files (if format is png or both)
+├── Collection_PNG/    # PNG icons (if format is png or both)
 │   ├── icon_name_1.png
-│   └── icon_name_2.png
-└── Collection_ICO/     # ICO files (if format is ico or both)
+│   ├── icon_name_2.png
+│   └── ...
+└── Collection_ICO/    # ICO icons (if format is ico or both)
     ├── icon_name_1.ico
-    └── icon_name_2.ico
+    ├── icon_name_2.ico
+    └── ...
 ```
 
-## 🔒 Privacy & Security
+## 🔧 Project Structure
 
-- Your login session is stored locally in `.browser_data/` folder
-- Credentials are never saved to disk
-- The `.browser_data/` folder is gitignored
-- Run with `--visible` to see exactly what the script is doing `Headless Recommended`
+```
+Icons8-Collector/
+├── icons8_collector/        # Main package
+│   ├── __init__.py
+│   ├── auth.py             # Authentication handling
+│   ├── cli.py              # Command-line interface
+│   ├── converter.py        # PNG to ICO conversion
+│   ├── downloader.py       # Icon downloading logic
+│   ├── exceptions.py       # Custom exceptions
+│   ├── main.py             # Main orchestration
+│   └── scraper.py          # Web scraping logic
+├── data/                    # Default output directory
+├── run.py                   # Entry point script
+├── requirements.txt         # Python dependencies
+├── License                  # MIT License
+└── README.md               # This file
+```
 
-## 🛠️ Requirements
+## 🛠️ Dependencies
 
-- Python 3.8+
-- Icons8 account (free or paid)
-- Chrome browser (optional, falls back to Chromium)
+- **requests** (≥2.28.0) - HTTP requests for icon downloads
+- **Pillow** (≥9.0.0) - Image processing and PNG to ICO conversion
+- **Playwright** (≥1.40.0) - Browser automation for scraping
 
-## 📜 License
+## ⚠️ Troubleshooting
 
-MIT License - See [LICENSE](License) file for details.
+### Authentication Issues
 
-### Examples
+- Ensure your Icons8 email and password are correct
+- Sessions are cached; delete `.auth_session` file to force re-login
+
+### Browser Installation
+
+If Playwright fails to launch, reinstall the browser:
 
 ```bash
-# Download 20 folder icons in fluent style
-python Icons8-Collector.py --search "folder" --style fluent --amount 20
-
-# Download 100 home icons in color style, size 256px
-python Icons8-Collector.py --search "home" --style color --amount 100 --size 256
-
-# Download icons without ICO conversion
-python Icons8-Collector.py --search "arrow" --style material --no-ico
-
-# Download icons from a collection (login required)
-python Icons8-Collector.py --url "https://icons8.com/icons/collections/xxx" --email "your@email.com" --password "yourpassword"
+python -m playwright install chromium --force
 ```
 
-## Output
+### Size Limitations
 
-Icons are saved to the output directory (default: `data`):
+Icons8 may not have all sizes available. If a download fails, try a different size (64, 128, 256, or 512).
 
-- `data/{Style}_PNG/` - PNG format icons
-- `data/{Style}_ICO/` - ICO format icons (unless `--no-ico` is used)
-- For collections, output folders are named `Collection_PNG` and `Collection_ICO`
+## 📝 License
 
-## Notes
+This project is licensed under the MIT License - see the [License](License) file for details.
 
-- Collection URLs require user authentication and browser automation. You may need to log in manually if credentials are not provided.
-- The script only downloads preview images (max resolution 550px) available on Icons8.
-- If you only want PNG files, use the `--no-ico` option.
-- The script uses Playwright for scraping collections. Make sure Chromium is installed (`python -m playwright install chromium`).
+## ⚠️ Disclaimer
 
-## Troubleshooting
+This tool is for personal use only. Respect Icons8's terms of service and only download icons you have the right to use. The authors are not responsible for any misuse of this tool.
 
-- If Playwright is not installed, the script will attempt to install it automatically.
-- For collection downloads, if auto-login fails, log in manually in the browser window and press ENTER in the terminal to continue.
-- If you encounter issues, check the output and debug logs for details.
-
-## License
-
-MIT License. See License file for details.
+**Made with ❤️ by NameIess**
