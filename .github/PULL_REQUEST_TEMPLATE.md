@@ -49,7 +49,6 @@ If applicable, provide details about the environment where changes were tested:
 
 - OS: Windows / Linux / macOS
 - Python version:
-- Icons8-Collector version / commit:
 
 ## 🧾 Additional Context
 
