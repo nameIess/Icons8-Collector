@@ -1,0 +1,66 @@
+name: User Support 🆘
+description: Ask a question or request help with Icons8-Collector.
+assignees: nameIess
+labels: ["help wanted", "question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Need some help? ❓
+        Before opening a support request, please ensure you have checked the documentation.
+  - type: checkboxes
+    id: docs_check
+    attributes:
+      label: 📘 Documentation Checked
+      description: "Which of these have you already checked?"
+      options:
+        - label: "README"
+        - label: "Help / CLI `--help`"
+        - label: "Existing issues"
+    validations:
+      required: true
+
+  - type: textarea
+    id: support_need
+    attributes:
+      label: 🧩 What do you need help with?
+      description: "Clearly describe what you are trying to do."
+      placeholder: |
+        e.g.,
+        I am trying to run the script in headless mode on a VPS but...
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried_already
+    attributes:
+      label: 🛠️ What have you tried?
+      description: "List the commands or configurations you have already attempted."
+      placeholder: |
+        e.g.,
+        - Ran 'icons8-collector --help
+        - Updated Python to latest version
+        - Checked firewall settings
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 💻 Environment Details
+      description: "Please specify your setup."
+      placeholder: |
+        - OS: [e.g. Windows / Linux / macOS]
+        - Python version: 
+        - Icons8-Collector version/commit: 
+        - Mode: [CLI / UI / Headless]
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 🧾 Additional Context
+      description: "Screenshots, related links, or extra details."
+    validations:
+      required: false
