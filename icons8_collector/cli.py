@@ -17,6 +17,7 @@ from typing import Optional
 
 from . import __version__
 from .logging_config import setup_logging, get_logger
+from .auth import _mask_email
 
 logger = get_logger("cli")
 
@@ -56,14 +57,6 @@ class UserConfig:
 # ============================================================================
 # Interactive Mode Functions
 # ============================================================================
-
-def _mask_email(email: str) -> str:
-    """Mask email for display."""
-    if '@' not in email:
-        return email[:2] + '***'
-    local, domain = email.rsplit('@', 1)
-    masked_local = local[:2] + '***' if len(local) > 2 else local[0] + '***'
-    return f"{masked_local}@{domain}"
 
 
 def clear_screen() -> None:

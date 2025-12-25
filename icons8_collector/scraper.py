@@ -9,14 +9,13 @@ import re
 import asyncio
 import logging
 from typing import Optional, TYPE_CHECKING
-from urllib.parse import urlparse
 
 if TYPE_CHECKING:
     from playwright.async_api import Page, BrowserContext
 
 from .exceptions import ScrapingError, BrowserError, AuthenticationError, ValidationError
 from .auth import check_login_status, perform_login, validate_credentials
-from .client import Icon, Icons8URLs
+from .client import Icon, Icons8URLs, Icons8Client
 
 logger = logging.getLogger(__name__)
 
@@ -27,46 +26,6 @@ BROWSER_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'
 
 # Validation constants
 VALID_SIZES = [16, 24, 32, 48, 64, 96, 128, 256, 512]
-
-
-def validate_collection_url(url: str) -> None:
-    """Validate that a URL is a valid Icons8 collection URL."""
-    if not url or not isinstance(url, str):
-        raise ValidationError(
-            "Collection URL must be a non-empty string",
-            field_name="url"
-        )
-    
-    try:
-        parsed = urlparse(url)
-    except Exception as e:
-        raise ValidationError(
-            f"Invalid URL format",
-            field_name="url",
-            original_error=e
-        )
-    
-    # Check scheme
-    if parsed.scheme not in Icons8URLs.ALLOWED_SCHEMES:
-        raise ValidationError(
-            f"Only HTTPS URLs are allowed. Got: {parsed.scheme}",
-            field_name="url"
-        )
-    
-    # Check domain
-    if not Icons8URLs.is_valid_domain(url, Icons8URLs.ALLOWED_COLLECTION_DOMAINS):
-        raise ValidationError(
-            f"URL domain not allowed: {parsed.netloc}. Only Icons8 domains are permitted.",
-            field_name="url"
-        )
-    
-    # Check for collection path
-    if '/collection/' not in parsed.path and '/collections/' not in parsed.path:
-        raise ValidationError(
-            "URL does not appear to be a valid Icons8 collection URL. "
-            "Expected path to contain '/collection/' or '/collections/'",
-            field_name="url"
-        )
 
 
 def validate_size(size: int) -> None:
@@ -245,8 +204,10 @@ async def scrape_collection(
     Returns:
         List of Icon objects
     """
-    # Validate inputs
-    validate_collection_url(url)
+    # Validate inputs using centralized client validation
+    client = Icons8Client()
+    client.validate_collection_url(url)
+    client.close()
     validate_size(size)
     validate_credentials(email, password)
     
