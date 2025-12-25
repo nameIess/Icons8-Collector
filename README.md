@@ -1,120 +1,139 @@
 # 🎨 Icons8 Collector
 
-A Python tool to download icons from your Icons8 collections. Supports PNG and ICO formats with automatic conversion.
+A production-grade Python CLI tool to download icons from your Icons8 collections. Supports PNG and ICO formats with automatic conversion.
+
+## ⚠️ Disclaimer
+
+This tool is intended for **personal use only** to download icons from collections you have legitimate access to. Please ensure you comply with [Icons8's Terms of Service](https://icons8.com/terms) when using this tool. The authors are not responsible for any misuse.
 
 ## ✨ Features
 
-- 🔐 Automatic login with session reuse (no repeated logins)
-- 💾 Session caching for faster subsequent runs
-- 🖼️ Multiple output formats: PNG, ICO, or both
-- 📐 Flexible icon sizes: 64–512px (or custom)
-- 🤖 Headless browser mode (default)
-- 🎛️ Interactive terminal UI or command-line interface
-- 🛡️ Fail-fast error handling with clear error messages
-- 📦 Bulk download entire collections
+- 🔐 **Secure Authentication** - Login with session caching (no repeated logins)
+- 💾 **Session Persistence** - Faster subsequent runs with saved sessions
+- 🖼️ **Multiple Formats** - Export as PNG, ICO, or both
+- 📐 **Flexible Sizes** - Support for 16px to 512px icons
+- 🤖 **Headless Mode** - Run without visible browser window
+- 🎛️ **Dual Interface** - Interactive terminal UI or command-line mode
+- 🔄 **Automatic Retry** - Built-in retry with exponential backoff for reliability
+- 📦 **Bulk Download** - Download entire collections at once
+- 🐍 **Installable Package** - Install via pip for easy access
 
 ## 📋 Requirements
 
 - Python 3.10 or higher
 - Windows, macOS, or Linux
+- Icons8 account with access to collections
 
 ## 📥 Installation
 
-1. **Clone or download the repository:**
+### Option 1: Install from Source (Recommended)
 
-   ```bash
-   git clone https://github.com/nameIess/Icons8-Collector.git
-   cd Icons8-Collector
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/nameIess/Icons8-Collector.git
+cd Icons8-Collector
 
-   Or [download as ZIP](https://github.com/nameIess/Icons8-Collector/archive/refs/heads/master.zip)
+# Create and activate virtual environment
+python -m venv venv
 
-2. **Create and activate a virtual environment (recommended):**
+# Windows:
+venv\Scripts\activate
 
-   ```bash
-   python -m venv venv
-   ```
+# macOS/Linux:
+source venv/bin/activate
 
-   - **Windows:**
-     ```bash
-     venv\Scripts\activate
-     ```
-   - **macOS/Linux:**
-     ```bash
-     source venv/bin/activate
-     ```
+# Install in development mode
+pip install -e .
 
-3. **Install Python dependencies:**
+# Install Playwright browser
+python -m playwright install chromium
+```
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Option 2: Install Dependencies Only
 
-4. **Install Playwright browser:**
-
-   ```bash
-   python -m playwright install chromium
-   ```
+```bash
+pip install -r requirements.txt
+python -m playwright install chromium
+```
 
 ## 🚀 Usage
 
-### Interactive Mode
+### Command Line Mode
 
-Run without arguments for an interactive menu:
+After installation, the `icons8-collector` (or `icons8`) command is available:
 
 ```bash
-python run.py
+# Basic usage with authentication
+icons8-collector --url "https://icons8.com/icons/collections/YOUR_ID" \
+    --email "your@email.com" \
+    --password "yourpassword"
+
+# Download as PNG with custom size
+icons8-collector --url "https://icons8.com/icons/collections/YOUR_ID" \
+    --format png --size 512 --output ./my-icons
+
+# Download both PNG and ICO
+icons8-collector --url "..." --format both
+
+# Enable verbose output for debugging
+icons8-collector --url "..." --verbose
+
+# Show browser window (useful for debugging)
+icons8-collector --url "..." --visible
 ```
 
-The interactive interface will guide you through:
+### Interactive Mode
 
+Run without a URL or with `--interactive` for a guided experience:
+
+```bash
+icons8-collector --interactive
+# or simply
+icons8-collector
+```
+
+The interactive mode will guide you through:
 - Collection URL input
-- Authentication (optional)
+- Authentication
 - Output format selection (PNG, ICO, or both)
 - Icon size selection
 - Browser display mode
 
-### Command Line Mode
+### Command Line Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--url` | `-u` | Icons8 collection URL | — |
+| `--email` | `-e` | Icons8 account email | — |
+| `--password` | `-P` | Icons8 account password | — |
+| `--format` | `-f` | Output format: `png`, `ico`, `both` | `ico` |
+| `--size` | `-s` | Icon size: 16, 24, 32, 48, 64, 96, 128, 256, 512 | `256` |
+| `--output` | `-o` | Output directory | `data` |
+| `--interactive` | `-i` | Run in interactive mode | `False` |
+| `--visible` | | Show browser window | `False` |
+| `--verbose` | `-v` | Enable verbose output | `False` |
+| `--debug` | | Enable debug output | `False` |
+| `--log-file` | | Write logs to file | — |
+| `--version` | `-V` | Show version and exit | — |
+| `--help` | `-h` | Show help and exit | — |
+
+### Examples
 
 ```bash
-python run.py --url "https://icons8.com/icons/collections/YOUR_COLLECTION_ID" [options]
-```
+# Download collection as ICO files (default)
+icons8-collector -u "https://icons8.com/icons/collections/abc123" \
+    -e "user@example.com" -P "password"
 
-#### Command Line Options
+# Download as 512px PNG files to custom directory
+icons8-collector -u "https://icons8.com/icons/collections/abc123" \
+    -e "user@example.com" -P "password" \
+    -f png -s 512 -o ./icons
 
-| Option (Long)   | Shortcut | Description                                       | Default |
-| --------------- | -------- | ------------------------------------------------- | ------- |
-| `--url`         | `-u`     | Icons8 collection URL (required)                  | —       |
-| `--email`       | `-e`     | Icons8 account email (required for first time)    | —       |
-| `--password`    | `-P`     | Icons8 account password (required for first time) | —       |
-| `--format`      | `-f`     | Output format: `png`, `ico`, or `both`            | `ico`   |
-| `--size`        | `-z`     | Icon size in pixels (64–512)                      | `256`   |
-| `--output`      | `-o`     | Output directory path                             | `data`  |
-| `--visible`     | `-v`     | Show browser window (headless by default)         | `False` |
-| `--interactive` | `-i`     | Run in interactive mode (prompts for input)       | `False` |
-| `--help`        | `-h`     | Show help message and exit                        | —       |
+# Use with verbose logging
+icons8-collector -u "..." -e "..." -P "..." -v
 
-#### Examples
-
-**Download both PNG and ICO with authentication:**
-
-```bash
-python run.py --url "https://icons8.com/icons/collections/12345" \
-              --email your@email.com \
-              --password yourpassword \
-              --format both \
-              --size 128
-```
-
-> ⚠️ **Security Note:** Passing passwords via command-line arguments may expose them in shell history or process lists. For better security, use interactive mode (`python run.py`) or set environment variables.
-
-**Download ICO only at 512px with visible browser:**
-
-```bash
-python run.py --url "https://icons8.com/icons/collections/12345" \
-              --format ico \
-              --size 512 \
-              --visible
+# Debug mode with log file
+icons8-collector -u "..." -e "..." -P "..." --debug --log-file debug.log
 ```
 
 ## 📁 Output Structure
@@ -133,57 +152,109 @@ data/
     └── ...
 ```
 
-## 🔧 Project Structure
+## 🧪 Development
+
+### Running Tests
+
+```bash
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Run tests with coverage
+pytest --cov=icons8_collector
+```
+
+### Project Structure
 
 ```
 Icons8-Collector/
-├── icons8_collector/        # Main package
-│   ├── __init__.py
-│   ├── auth.py             # Authentication handling
-│   ├── cli.py              # Command-line interface
-│   ├── converter.py        # PNG to ICO conversion
-│   ├── downloader.py       # Icon downloading logic
-│   ├── exceptions.py       # Custom exceptions
-│   ├── main.py             # Main orchestration
-│   └── scraper.py          # Web scraping logic
-├── data/                    # Default output directory
-├── run.py                   # Entry point script
-├── requirements.txt         # Python dependencies
-├── License                  # MIT License
-└── README.md               # This file
+├── icons8_collector/
+│   ├── __init__.py      # Package initialization
+│   ├── cli.py           # Command-line interface
+│   ├── client.py        # Icons8Client for network operations
+│   ├── scraper.py       # Browser automation for collection scraping
+│   ├── converter.py     # PNG to ICO conversion
+│   ├── downloader.py    # Legacy download functions
+│   ├── auth.py          # Authentication handling
+│   ├── exceptions.py    # Custom exceptions
+│   ├── logging_config.py # Logging configuration
+│   └── main.py          # Legacy entry point
+├── tests/
+│   ├── test_client.py   # Client tests
+│   ├── test_cli.py      # CLI tests
+│   └── test_converter.py # Converter tests
+├── pyproject.toml       # Package configuration
+├── requirements.txt     # Dependencies
+└── README.md
 ```
 
-## 🛠️ Dependencies
+## ⚙️ How It Works
 
-- **requests** (≥2.28.0) - HTTP requests for icon downloads
-- **Pillow** (≥9.0.0) - Image processing and PNG to ICO conversion
-- **Playwright** (≥1.40.0) - Browser automation for scraping
+1. **Authentication**: Uses Playwright to automate browser login to Icons8
+2. **Session Caching**: Saves browser session to avoid repeated logins
+3. **Collection Scraping**: Scrolls through the collection page to load all icons
+4. **Icon Extraction**: Extracts icon IDs and metadata from the page
+5. **Download**: Downloads each icon as PNG using the Icons8 image API
+6. **Conversion**: Optionally converts PNG files to ICO format
 
-## ⚠️ Troubleshooting
+## 🛡️ Security Features
 
-### Authentication Issues
+- URL validation to prevent SSRF attacks
+- Path traversal prevention for output files
+- Credential sanitization in error messages
+- HTTPS-only connections
+- Domain allowlisting for downloads
 
-- Ensure your Icons8 email and password are correct
-- Sessions are cached; delete `.auth_session` file to force re-login
+## ⚠️ Limitations
 
-### Browser Installation
+- **Requires Icons8 Account**: You need valid Icons8 credentials with access to the collections you want to download
+- **Rate Limiting**: Icons8 may rate-limit excessive requests
+- **Page Structure Changes**: The scraper may break if Icons8 changes their website structure
+- **Not for Bulk Scraping**: This tool is designed for downloading your own collections, not for bulk scraping the Icons8 catalog
+- **Session Expiry**: Saved sessions may expire and require re-authentication
 
-If Playwright fails to launch, reinstall the browser:
+## 🐛 Troubleshooting
+
+### Browser Launch Fails
 
 ```bash
-python -m playwright install chromium --force
+# Reinstall Playwright browsers
+python -m playwright install chromium
 ```
 
-### Size Limitations
+### Login Issues
 
-Icons8 may not have all sizes available. If a download fails, try a different size (64, 128, 256, or 512).
+- Verify your credentials are correct
+- Try running with `--visible` to see the browser
+- Check if Icons8 is showing a CAPTCHA
+- Clear browser data: delete the `.browser_data` directory
 
-## 📝 License
+### No Icons Found
 
-This project is licensed under the MIT License - see the [License](License) file for details.
+- Ensure the collection URL is correct
+- Verify you have access to the collection
+- Try running with `--visible` to debug
+- Check verbose output with `--verbose`
 
-## ⚠️ Disclaimer
+### Timeout Errors
 
-This tool is for personal use only. Respect Icons8's terms of service and only download icons you have the right to use. The authors are not responsible for any misuse of this tool.
+- Check your internet connection
+- Try with `--visible` to see if the page is loading
+- Increase default timeout in the code if needed
 
-**Made with ❤️ by NameIess**
+## 📄 License
+
+MIT License - see [LICENSE](License) for details.
+
+## 🙏 Acknowledgments
+
+- [Icons8](https://icons8.com) for their excellent icon library
+- [Playwright](https://playwright.dev) for browser automation
+- [Pillow](https://pillow.readthedocs.io) for image processing
+
+---
+
+**Note**: This is an unofficial tool and is not affiliated with, authorized by, or endorsed by Icons8.
