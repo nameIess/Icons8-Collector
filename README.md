@@ -93,6 +93,7 @@ icons8-collector
 ```
 
 The interactive mode will guide you through:
+
 - Collection URL input
 - Authentication
 - Output format selection (PNG, ICO, or both)
@@ -101,21 +102,21 @@ The interactive mode will guide you through:
 
 ### Command Line Options
 
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| `--url` | `-u` | Icons8 collection URL | — |
-| `--email` | `-e` | Icons8 account email | — |
-| `--password` | `-P` | Icons8 account password | — |
-| `--format` | `-f` | Output format: `png`, `ico`, `both` | `ico` |
-| `--size` | `-s` | Icon size: 16, 24, 32, 48, 64, 96, 128, 256, 512 | `256` |
-| `--output` | `-o` | Output directory | `data` |
-| `--interactive` | `-i` | Run in interactive mode | `False` |
-| `--visible` | | Show browser window | `False` |
-| `--verbose` | `-v` | Enable verbose output | `False` |
-| `--debug` | | Enable debug output | `False` |
-| `--log-file` | | Write logs to file | — |
-| `--version` | `-V` | Show version and exit | — |
-| `--help` | `-h` | Show help and exit | — |
+| Option          | Short | Description                                      | Default |
+| --------------- | ----- | ------------------------------------------------ | ------- |
+| `--url`         | `-u`  | Icons8 collection URL                            | —       |
+| `--email`       | `-e`  | Icons8 account email                             | —       |
+| `--password`    | `-P`  | Icons8 account password                          | —       |
+| `--format`      | `-f`  | Output format: `png`, `ico`, `both`              | `ico`   |
+| `--size`        | `-s`  | Icon size: 16, 24, 32, 48, 64, 96, 128, 256, 512 | `256`   |
+| `--output`      | `-o`  | Output directory                                 | `data`  |
+| `--interactive` | `-i`  | Run in interactive mode                          | `False` |
+| `--visible`     |       | Show browser window                              | `False` |
+| `--verbose`     | `-v`  | Enable verbose output                            | `False` |
+| `--debug`       |       | Enable debug output                              | `False` |
+| `--log-file`    |       | Write logs to file                               | —       |
+| `--version`     | `-V`  | Show version and exit                            | —       |
+| `--help`        | `-h`  | Show help and exit                               | —       |
 
 ### Examples
 
