@@ -1,72 +1,25 @@
 import os
 import re
 import asyncio
-from dataclasses import dataclass
+import logging
 from typing import Optional, TYPE_CHECKING
-from urllib.parse import urlparse
 
 if TYPE_CHECKING:
     from playwright.async_api import Page, BrowserContext
 
 from .exceptions import ScrapingError, BrowserError, AuthenticationError, ValidationError
 from .auth import check_login_status, perform_login, validate_credentials
+from .client import Icon, Icons8URLs, Icons8Client
+
+logger = logging.getLogger(__name__)
 
 
 # Default configuration
 DEFAULT_SIZE = 256
 BROWSER_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.browser_data')
 
-# Security constants
-ALLOWED_COLLECTION_DOMAINS = ['icons8.com']
-ALLOWED_SCHEMES = ['https']
+# Validation constants
 VALID_SIZES = [16, 24, 32, 48, 64, 96, 128, 256, 512]
-
-
-@dataclass
-class Icon:
-    id: str
-    name: str
-    url: str
-
-
-def validate_collection_url(url: str) -> None:
-    if not url or not isinstance(url, str):
-        raise ValidationError(
-            "Collection URL must be a non-empty string",
-            field_name="url"
-        )
-    
-    try:
-        parsed = urlparse(url)
-    except Exception as e:
-        raise ValidationError(
-            f"Invalid URL format",
-            field_name="url",
-            original_error=e
-        )
-    
-    # Check scheme
-    if parsed.scheme not in ALLOWED_SCHEMES:
-        raise ValidationError(
-            f"Only HTTPS URLs are allowed. Got: {parsed.scheme}",
-            field_name="url"
-        )
-    
-    # Check domain
-    domain = parsed.netloc.lower()
-    if not any(domain == allowed or domain.endswith('.' + allowed) for allowed in ALLOWED_COLLECTION_DOMAINS):
-        raise ValidationError(
-            f"URL domain not allowed: {domain}. Only Icons8 domains are permitted.",
-            field_name="url"
-        )
-    
-    # Check for collection path
-    if '/collection/' not in parsed.path and '/collections/' not in parsed.path:
-        raise ValidationError(
-            "URL does not appear to be a valid Icons8 collection URL. "
-            "Expected path to contain '/collection/' or '/collections/'",
-            field_name="url"
-        )
 
 
 def validate_size(size: int) -> None:
@@ -96,7 +49,8 @@ async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
     
     os.makedirs(BROWSER_DATA_DIR, exist_ok=True)
     mode_str = "headless" if headless else "visible"
-    print(f"Launching browser ({mode_str})...")
+    logger.info(f"Launching browser ({mode_str})...")
+    print(f"  🌐 Launching browser ({mode_str})...")
     
     p = await async_playwright().start()
     
@@ -107,8 +61,10 @@ async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
             headless=headless,
             channel="chrome"
         )
+        logger.debug("Using Chrome browser")
     except Exception as chrome_error:
-        print(f"Chrome not available, using Chromium...")
+        logger.debug(f"Chrome not available: {chrome_error}")
+        print(f"  ℹ Chrome not available, using Chromium...")
         try:
             context = await p.chromium.launch_persistent_context(
                 user_data_dir=BROWSER_DATA_DIR,
@@ -127,7 +83,8 @@ async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
 
 
 async def scroll_to_load_icons(page: "Page", max_scrolls: int = 20) -> int:
-    print("Scrolling to load icons...")
+    logger.debug("Scrolling to load icons...")
+    print("  📜 Scrolling to load all icons...")
     prev_count = 0
     
     for i in range(max_scrolls):
@@ -138,7 +95,7 @@ async def scroll_to_load_icons(page: "Page", max_scrolls: int = 20) -> int:
         if icon_count == 0:
             icon_count = await page.locator('img[srcset*="icons8.com"]').count()
         
-        print(f"  Scroll {i + 1}: Found {icon_count} icon elements...")
+        logger.debug(f"Scroll {i + 1}: Found {icon_count} icon elements")
         
         # Stop if count hasn't changed after several scrolls
         if icon_count == prev_count and i > 5 and icon_count > 0:
@@ -153,14 +110,14 @@ async def extract_icons_from_dom(page: "Page", size: int) -> list[Icon]:
     count = await icon_imgs.count()
     
     if count == 0:
-        print("Trying alternative selector: img[srcset*='icons8']")
+        logger.debug("Trying alternative selector: img[srcset*='icons8']")
         icon_imgs = page.locator('img[srcset*="icons8.com"]')
         count = await icon_imgs.count()
     
     if count == 0:
         return []
     
-    print(f"Found {count} icon images via DOM")
+    logger.info(f"Found {count} icon images via DOM")
     
     icons = []
     seen_ids: set[str] = set()
@@ -181,22 +138,22 @@ async def extract_icons_from_dom(page: "Page", size: int) -> list[Icon]:
                     icons.append(Icon(
                         id=icon_id,
                         name=name,
-                        url=f"https://img.icons8.com/?size={size}&id={icon_id}&format=png"
+                        url=Icons8URLs.build_icon_url(icon_id, size)
                     ))
-                    print(f"  Found: {name} (ID: {icon_id})")
+                    logger.debug(f"Found: {name} (ID: {icon_id})")
     
     return icons
 
 
 async def extract_icons_via_regex(page: "Page", size: int) -> list[Icon]:
-    print("Trying regex extraction from page content...")
+    logger.debug("Trying regex extraction from page content...")
     content = await page.content()
     
     id_matches = re.findall(
         r'img\.icons8\.com/?\?[^"\'>\s]*id=([A-Za-z0-9_-]+)[^"\'>\s]*', 
         content
     )
-    print(f"Found {len(id_matches)} icon IDs via regex")
+    logger.debug(f"Found {len(id_matches)} icon IDs via regex")
     
     icons = []
     seen_ids: set[str] = set()
@@ -207,11 +164,11 @@ async def extract_icons_via_regex(page: "Page", size: int) -> list[Icon]:
             icons.append(Icon(
                 id=icon_id,
                 name=f'icon-{icon_id}',
-                url=f"https://img.icons8.com/?size={size}&id={icon_id}&format=png"
+                url=Icons8URLs.build_icon_url(icon_id, size)
             ))
     
     if icons:
-        print(f"Extracted {len(icons)} icons via regex")
+        logger.info(f"Extracted {len(icons)} icons via regex")
     
     return icons
 
@@ -223,8 +180,8 @@ async def scrape_collection(
     password: Optional[str] = None,
     headless: bool = True
 ) -> list[Icon]:
-    # Validate inputs
-    validate_collection_url(url)
+    # Validate inputs using centralized client validation
+    Icons8Client.validate_collection_url_static(url)
     validate_size(size)
     validate_credentials(email, password)
     
@@ -233,7 +190,8 @@ async def scrape_collection(
     try:
         page = await context.new_page()
         
-        print(f"Opening collection page: {url}")
+        logger.info(f"Opening collection page: {url}")
+        print(f"  🔗 Opening collection page...")
         response = await page.goto(url, timeout=60000)
         if response is None or not response.ok:
             raise ScrapingError(
@@ -241,20 +199,22 @@ async def scrape_collection(
             )
         
         await asyncio.sleep(5)
-        print("Waiting for page to fully load...")
+        logger.debug("Waiting for page to fully load...")
         await asyncio.sleep(3)
         
         # Check login status
         is_logged_in = await check_login_status(page)
-        print(f"Icons already visible: {is_logged_in}")
+        logger.debug(f"Icons already visible: {is_logged_in}")
         
         if is_logged_in:
-            print("Already logged in! Skipping login process...")
+            logger.info("Already logged in - skipping login process")
+            print("  ✓ Already logged in!")
         elif email and password:
-            print("Not logged in - attempting login...")
+            logger.info("Not logged in - attempting login...")
+            print("  🔐 Logging in...")
             await perform_login(page, email, password)
             
-            print(f"Reloading collection page...")
+            logger.debug("Reloading collection page...")
             await page.goto(url, timeout=60000)
             await asyncio.sleep(5)
             
@@ -265,46 +225,46 @@ async def scrape_collection(
                     "Please verify your credentials are correct."
                 )
             
-            print("Login completed!")
+            logger.info("Login completed!")
+            print("  ✓ Login successful!")
         else:
             raise AuthenticationError(
                 "No icons visible and no credentials provided. "
-                "Please provide ICONS8_EMAIL and ICONS8_PASSWORD environment variables, "
-                "or use --email and --password arguments."
+                "Please provide --email and --password arguments or configure your credentials via environment variables."
             )
         
-        print("Loading collection page...")
+        logger.debug("Loading collection page...")
         await asyncio.sleep(2)
         
-        print("Waiting for icons to load...")
+        logger.debug("Waiting for icons to load...")
         try:
             await page.wait_for_selector(
                 '.app-grid-icon__image, .collection-icon, img[srcset*="icons8"]',
                 timeout=15000
             )
         except asyncio.TimeoutError:
-            print("Warning: Timed out waiting for icon elements with standard selectors")
+            logger.warning("Timed out waiting for icon elements with standard selectors")
         except Exception as selector_error:
-            # Log but don't fail - we'll try alternative methods
-            print(f"Warning: Could not find icon elements: {type(selector_error).__name__}")
+            logger.warning(f"Could not find icon elements: {type(selector_error).__name__}")
         
         await asyncio.sleep(2)
         
         title = await page.title()
-        print(f"Page title: {title}")
+        logger.debug(f"Page title: {title}")
         
         # Scroll to load all icons
         await scroll_to_load_icons(page)
         
         # Extract icons
-        print("\nExtracting icons from page...")
+        logger.info("Extracting icons from page...")
+        print("  🔍 Extracting icons from page...")
         icons = await extract_icons_from_dom(page, size)
         
         # Fallback to regex if DOM extraction failed
         if not icons:
             icons = await extract_icons_via_regex(page, size)
         
-        print(f"\nTotal unique icons found: {len(icons)}")
+        logger.info(f"Total unique icons found: {len(icons)}")
         
         if not icons:
             raise ScrapingError(

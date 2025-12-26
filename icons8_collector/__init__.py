@@ -1,4 +1,4 @@
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "nameIess"
 
 from .exceptions import (
@@ -12,7 +12,18 @@ from .exceptions import (
     ValidationError,
 )
 
+from .client import (
+    Icons8Client,
+    Icons8URLs,
+    Icon,
+    sanitize_filename,
+)
+
 __all__ = [
+    # Version
+    "__version__",
+    "__author__",
+    # Exceptions
     "Icons8CollectorError",
     "AuthenticationError",
     "ScrapingError",
@@ -21,4 +32,9 @@ __all__ = [
     "ConfigurationError",
     "BrowserError",
     "ValidationError",
+    # Client
+    "Icons8Client",
+    "Icons8URLs",
+    "Icon",
+    "sanitize_filename",
 ]
