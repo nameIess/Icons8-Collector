@@ -1,9 +1,3 @@
-"""
-Logging configuration for Icons8 Collector.
-
-Provides structured logging with configurable verbosity levels.
-"""
-
 import logging
 import sys
 from typing import Optional
@@ -20,17 +14,6 @@ def setup_logging(
     debug: bool = False,
     log_file: Optional[str] = None,
 ) -> logging.Logger:
-    """
-    Configure logging for the application.
-    
-    Args:
-        verbose: Enable verbose output (INFO level with timestamps)
-        debug: Enable debug output (DEBUG level with full details)
-        log_file: Optional path to log file
-        
-    Returns:
-        Configured root logger for the application
-    """
     # Determine log level
     if debug:
         level = logging.DEBUG
@@ -73,53 +56,22 @@ def setup_logging(
 
 
 def get_logger(name: str) -> logging.Logger:
-    """
-    Get a logger instance for a module.
-    
-    Args:
-        name: Module name (typically __name__)
-        
-    Returns:
-        Logger instance
-    """
     return logging.getLogger(f"icons8_collector.{name}")
 
 
 class ProgressLogger:
-    """
-    Helper class for logging progress during batch operations.
-    
-    Provides a consistent interface for progress reporting that
-    works with both logging and direct console output.
-    """
-    
     def __init__(
         self,
         total: int,
         logger: Optional[logging.Logger] = None,
         prefix: str = "",
     ) -> None:
-        """
-        Initialize progress logger.
-        
-        Args:
-            total: Total number of items
-            logger: Logger instance (uses print if None)
-            prefix: Prefix for progress messages
-        """
         self.total = total
         self.current = 0
         self.logger = logger
         self.prefix = prefix
     
     def update(self, message: str = "", success: bool = True) -> None:
-        """
-        Update progress with a message.
-        
-        Args:
-            message: Progress message
-            success: Whether the current item succeeded
-        """
         self.current += 1
         status = "✓" if success else "✗"
         progress_msg = f"[{self.current}/{self.total}] {status} {self.prefix}{message}"
@@ -133,12 +85,6 @@ class ProgressLogger:
             print(progress_msg)
     
     def finish(self, message: str = "Complete") -> None:
-        """
-        Log completion message.
-        
-        Args:
-            message: Completion message
-        """
         if self.logger:
             self.logger.info(f"{self.prefix}{message}")
         else:

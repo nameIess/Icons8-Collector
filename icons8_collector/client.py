@@ -1,10 +1,3 @@
-"""
-Icons8 Client - Centralized network operations and API management.
-
-This module provides an abstraction layer for all Icons8 API interactions,
-isolating network logic from the rest of the application.
-"""
-
 import logging
 import re
 from dataclasses import dataclass
@@ -31,7 +24,6 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 class Icons8URLs:
-    """Centralized URL configuration for Icons8 API."""
     
     BASE_DOMAIN = "icons8.com"
     IMAGE_DOMAIN = "img.icons8.com"
@@ -49,16 +41,6 @@ class Icons8URLs:
     
     @classmethod
     def build_icon_url(cls, icon_id: str, size: int = 256, fmt: str = "png") -> str:
-        """Build a download URL for an icon.
-        
-        Args:
-            icon_id: The unique icon identifier
-            size: Icon size in pixels (default: 256)
-            fmt: Image format (default: png)
-            
-        Returns:
-            Full download URL for the icon
-        """
         params = urlencode({
             "size": size,
             "id": icon_id,
@@ -68,15 +50,6 @@ class Icons8URLs:
     
     @classmethod
     def is_valid_domain(cls, url: str, allowed_domains: list[str]) -> bool:
-        """Check if a URL belongs to an allowed domain.
-        
-        Args:
-            url: URL to validate
-            allowed_domains: List of allowed domain names
-            
-        Returns:
-            True if domain is allowed, False otherwise
-        """
         try:
             parsed = urlparse(url)
             domain = parsed.netloc.lower()
@@ -94,14 +67,12 @@ class Icons8URLs:
 
 @dataclass
 class Icon:
-    """Represents an icon from an Icons8 collection."""
     
     id: str
     name: str
     url: str
     
     def __post_init__(self) -> None:
-        """Validate icon data after initialization."""
         if not self.id:
             raise ValueError("Icon ID cannot be empty")
         if not self.url:
@@ -135,16 +106,6 @@ PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
 # ============================================================================
 
 class Icons8Client:
-    """
-    Client for interacting with Icons8 services.
-    
-    Handles all network operations including icon downloads with proper
-    error handling, retries, and validation.
-    
-    Example:
-        >>> client = Icons8Client()
-        >>> client.download_icon("abc123", Path("output/icon.png"), size=256)
-    """
     
     def __init__(
         self,
@@ -152,14 +113,6 @@ class Icons8Client:
         max_retries: int = MAX_RETRIES,
         headers: Optional[dict] = None,
     ) -> None:
-        """
-        Initialize the Icons8 client.
-        
-        Args:
-            timeout: Request timeout in seconds
-            max_retries: Maximum number of retry attempts
-            headers: Additional headers to include in requests
-        """
         self.timeout = timeout
         self.max_retries = max_retries
         self.session = requests.Session()
@@ -170,15 +123,6 @@ class Icons8Client:
         logger.debug(f"Icons8Client initialized (timeout={timeout}s, max_retries={max_retries})")
     
     def validate_download_url(self, url: str) -> None:
-        """
-        Validate that a URL is safe to download from.
-        
-        Args:
-            url: URL to validate
-            
-        Raises:
-            ValidationError: If URL is invalid or from untrusted domain
-        """
         if not url or not isinstance(url, str):
             raise ValidationError(
                 "URL must be a non-empty string",
@@ -207,15 +151,6 @@ class Icons8Client:
             )
     
     def validate_collection_url(self, url: str) -> None:
-        """
-        Validate that a URL is a valid Icons8 collection URL.
-        
-        Args:
-            url: Collection URL to validate
-            
-        Raises:
-            ValidationError: If URL is not a valid collection URL
-        """
         if not url or not isinstance(url, str):
             raise ValidationError(
                 "Collection URL must be a non-empty string",
@@ -258,18 +193,6 @@ class Icons8Client:
         reraise=True,
     )
     def _download_with_retry(self, url: str) -> bytes:
-        """
-        Download content from URL with retry logic.
-        
-        Args:
-            url: URL to download from
-            
-        Returns:
-            Downloaded content as bytes
-            
-        Raises:
-            DownloadError: If download fails after all retries
-        """
         try:
             response = self.session.get(
                 url,
@@ -337,18 +260,6 @@ class Icons8Client:
         output_path: Path,
         base_dir: Optional[Path] = None,
     ) -> None:
-        """
-        Download an icon from the given URL.
-        
-        Args:
-            url: Icon URL to download
-            output_path: Path to save the icon
-            base_dir: Base directory for path validation (optional)
-            
-        Raises:
-            ValidationError: If URL or path is invalid
-            DownloadError: If download fails
-        """
         self.validate_download_url(url)
         output_path = Path(output_path)
         
@@ -404,15 +315,6 @@ class Icons8Client:
         size: int = 256,
         base_dir: Optional[Path] = None,
     ) -> None:
-        """
-        Download an icon by its ID.
-        
-        Args:
-            icon_id: Unique icon identifier
-            output_path: Path to save the icon
-            size: Icon size in pixels
-            base_dir: Base directory for path validation
-        """
         url = Icons8URLs.build_icon_url(icon_id, size=size)
         self.download_icon(url, output_path, base_dir)
     
@@ -421,19 +323,6 @@ class Icons8Client:
         output_path: Path,
         base_dir: Optional[Path] = None,
     ) -> Path:
-        """
-        Validate and resolve an output path.
-        
-        Args:
-            output_path: Path to validate
-            base_dir: Base directory constraint
-            
-        Returns:
-            Resolved absolute path
-            
-        Raises:
-            ValidationError: If path is invalid or escapes base_dir
-        """
         try:
             resolved_path = output_path.resolve()
         except Exception as e:
@@ -467,7 +356,6 @@ class Icons8Client:
         return resolved_path
     
     def close(self) -> None:
-        """Close the client session."""
         self.session.close()
         logger.debug("Icons8Client session closed")
     
@@ -483,16 +371,6 @@ class Icons8Client:
 # ============================================================================
 
 def sanitize_filename(name: str, fallback: str = "icon") -> str:
-    """
-    Sanitize a filename to be safe for filesystem operations.
-    
-    Args:
-        name: Original filename
-        fallback: Fallback name if sanitization produces empty result
-        
-    Returns:
-        Safe filename string
-    """
     if not name or not isinstance(name, str):
         return fallback
     
@@ -519,14 +397,5 @@ def sanitize_filename(name: str, fallback: str = "icon") -> str:
 
 
 def extract_icon_id_from_url(url: str) -> Optional[str]:
-    """
-    Extract icon ID from an Icons8 image URL.
-    
-    Args:
-        url: Image URL containing icon ID
-        
-    Returns:
-        Icon ID if found, None otherwise
-    """
     match = re.search(r'id=([A-Za-z0-9_-]+)', url)
     return match.group(1) if match else None

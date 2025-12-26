@@ -1,9 +1,3 @@
-"""
-Collection scraper for Icons8 Collector.
-
-Handles browser automation for scraping icon collections from Icons8.
-"""
-
 import os
 import re
 import asyncio
@@ -29,7 +23,6 @@ VALID_SIZES = [16, 24, 32, 48, 64, 96, 128, 256, 512]
 
 
 def validate_size(size: int) -> None:
-    """Validate icon size."""
     if not isinstance(size, int):
         raise ValidationError(
             f"Size must be an integer, got {type(size).__name__}",
@@ -44,7 +37,6 @@ def validate_size(size: int) -> None:
 
 
 async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
-    """Launch browser for scraping."""
     try:
         from playwright.async_api import async_playwright
     except ImportError as e:
@@ -91,7 +83,6 @@ async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
 
 
 async def scroll_to_load_icons(page: "Page", max_scrolls: int = 20) -> int:
-    """Scroll page to load all icons (lazy loading)."""
     logger.debug("Scrolling to load icons...")
     print("  📜 Scrolling to load all icons...")
     prev_count = 0
@@ -115,7 +106,6 @@ async def scroll_to_load_icons(page: "Page", max_scrolls: int = 20) -> int:
 
 
 async def extract_icons_from_dom(page: "Page", size: int) -> list[Icon]:
-    """Extract icons from page DOM."""
     icon_imgs = page.locator('div.app-grid-icon__image img')
     count = await icon_imgs.count()
     
@@ -156,7 +146,6 @@ async def extract_icons_from_dom(page: "Page", size: int) -> list[Icon]:
 
 
 async def extract_icons_via_regex(page: "Page", size: int) -> list[Icon]:
-    """Extract icons via regex from page content (fallback method)."""
     logger.debug("Trying regex extraction from page content...")
     content = await page.content()
     
@@ -191,19 +180,6 @@ async def scrape_collection(
     password: Optional[str] = None,
     headless: bool = True
 ) -> list[Icon]:
-    """
-    Scrape icons from an Icons8 collection.
-    
-    Args:
-        url: Collection URL
-        size: Icon size in pixels
-        email: Account email (optional)
-        password: Account password (optional)
-        headless: Run browser in headless mode
-        
-    Returns:
-        List of Icon objects
-    """
     # Validate inputs using centralized client validation
     client = Icons8Client()
     client.validate_collection_url(url)
@@ -312,17 +288,4 @@ def get_collection_icons(
     password: Optional[str] = None,
     headless: bool = True
 ) -> list[Icon]:
-    """
-    Synchronous wrapper for scrape_collection.
-    
-    Args:
-        url: Collection URL
-        size: Icon size in pixels
-        email: Account email (optional)
-        password: Account password (optional)
-        headless: Run browser in headless mode
-        
-    Returns:
-        List of Icon objects
-    """
     return asyncio.run(scrape_collection(url, size, email, password, headless))

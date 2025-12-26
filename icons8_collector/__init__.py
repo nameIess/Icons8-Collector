@@ -1,10 +1,3 @@
-"""
-Icons8 Collector - Download icons from Icons8 collections.
-
-A production-grade CLI tool for downloading icons from Icons8.com collections
-with support for PNG and ICO formats.
-"""
-
 __version__ = "2.0.0"
 __author__ = "nameIess"
 

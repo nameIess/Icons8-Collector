@@ -1,9 +1,3 @@
-"""
-Command-line interface for Icons8 Collector.
-
-Provides both interactive and command-line modes for downloading icons.
-"""
-
 import argparse
 import getpass
 import logging
@@ -36,7 +30,6 @@ VALID_SIZES = [16, 24, 32, 48, 64, 96, 128, 256, 512]
 # ============================================================================
 
 class OutputFormat(Enum):
-    """Supported output formats for icons."""
     PNG = "png"
     ICO = "ico"
     BOTH = "both"
@@ -44,7 +37,6 @@ class OutputFormat(Enum):
 
 @dataclass
 class UserConfig:
-    """User configuration for download operation."""
     url: str
     email: Optional[str]
     password: Optional[str]
@@ -60,7 +52,6 @@ class UserConfig:
 
 
 def clear_screen() -> None:
-    """Clear the terminal screen."""
     if sys.platform == 'win32':
         subprocess.run(['cmd', '/c', 'cls'], shell=False, capture_output=True)
     else:
@@ -68,7 +59,6 @@ def clear_screen() -> None:
 
 
 def print_header() -> None:
-    """Print the application header."""
     clear_screen()
     print("\n")
     print("  ╔══════════════════════════════════════════════════════════╗")
@@ -83,23 +73,19 @@ def print_header() -> None:
 
 
 def print_section(title: str) -> None:
-    """Print a section header."""
     print(f"\n  ┌─ {title} " + "─" * (50 - len(title)) + "┐")
 
 
 def print_option(num: int, text: str, default: bool = False) -> None:
-    """Print a menu option."""
     default_str = " (default)" if default else ""
     print(f"  │  [{num}] {text}{default_str}")
 
 
 def print_section_end() -> None:
-    """Print section footer."""
     print("  └" + "─" * 54 + "┘")
 
 
 def get_input(prompt: str, default: Optional[str] = None) -> str:
-    """Get input from user with optional default."""
     if default:
         result = input(f"  │  {prompt} [{default}]: ").strip()
         return result if result else default
@@ -107,12 +93,6 @@ def get_input(prompt: str, default: Optional[str] = None) -> str:
 
 
 def get_interactive_input() -> Optional[UserConfig]:
-    """
-    Run interactive mode to get user configuration.
-    
-    Returns:
-        UserConfig if successful, None if cancelled
-    """
     print_header()
     
     # Collection URL
@@ -243,7 +223,6 @@ def get_interactive_input() -> Optional[UserConfig]:
 # ============================================================================
 
 def create_argument_parser() -> argparse.ArgumentParser:
-    """Create and configure the argument parser."""
     parser = argparse.ArgumentParser(
         prog="icons8-collector",
         description="Download icons from Icons8.com collections.",
@@ -349,21 +328,11 @@ For more information, visit: https://github.com/nameIess/Icons8-Collector
 
 
 def parse_args(args: Optional[list[str]] = None) -> argparse.Namespace:
-    """Parse command-line arguments."""
     parser = create_argument_parser()
     return parser.parse_args(args)
 
 
 def validate_size(size: int) -> int:
-    """
-    Validate and normalize icon size.
-    
-    Args:
-        size: Requested size in pixels
-        
-    Returns:
-        Valid size (closest valid size if not in VALID_SIZES)
-    """
     if size in VALID_SIZES:
         return size
     
@@ -385,7 +354,6 @@ def print_download_complete(
     ico_path: Optional[str],
     errors: int = 0,
 ) -> None:
-    """Print download completion summary."""
     print("\n")
     print("  ╔══════════════════════════════════════════════════════════╗")
     print("  ║                                                          ║")
@@ -411,7 +379,6 @@ def print_download_complete(
 
 
 def print_error(message: str) -> None:
-    """Print an error message."""
     print(f"\n  ❌ Error: {message}\n", file=sys.stderr)
 
 
@@ -428,21 +395,6 @@ def run_download(
     output_dir: str,
     headless: bool,
 ) -> int:
-    """
-    Execute the download operation.
-    
-    Args:
-        url: Collection URL
-        email: Account email (optional)
-        password: Account password (optional)
-        size: Icon size in pixels
-        output_format: Desired output format
-        output_dir: Output directory path
-        headless: Whether to run browser in headless mode
-        
-    Returns:
-        Exit code (0 for success, non-zero for failure)
-    """
     from .scraper import get_collection_icons
     from .client import Icons8Client, sanitize_filename
     from .converter import convert_png_to_ico
@@ -560,15 +512,6 @@ def run_download(
 
 
 def main(args: Optional[list[str]] = None) -> int:
-    """
-    Main entry point for the CLI.
-    
-    Args:
-        args: Command-line arguments (uses sys.argv if None)
-        
-    Returns:
-        Exit code
-    """
     from .exceptions import Icons8CollectorError
     
     parsed_args = parse_args(args)

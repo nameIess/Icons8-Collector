@@ -2,11 +2,6 @@ from typing import Optional, Any
 
 
 class Icons8CollectorError(Exception):
-    """Base exception for all Icons8 Collector errors.
-    
-    All exceptions store error context for debugging while ensuring
-    sensitive information is not exposed in error messages.
-    """
 
     def __init__(
         self, 
@@ -23,7 +18,6 @@ class Icons8CollectorError(Exception):
     
     @staticmethod
     def _sanitize_message(message: str) -> str:
-        """Remove potentially sensitive information from error messages."""
         import re
         # Redact email addresses
         message = re.sub(
@@ -45,10 +39,6 @@ class Icons8CollectorError(Exception):
 
 
 class AuthenticationError(Icons8CollectorError):
-    """Raised when authentication fails.
-    
-    Note: Never include actual credentials in error messages.
-    """
 
     def __init__(
         self,
@@ -67,7 +57,6 @@ class AuthenticationError(Icons8CollectorError):
 
 
 class ScrapingError(Icons8CollectorError):
-    """Raised when scraping icons from a collection fails."""
 
     def __init__(
         self,
@@ -88,7 +77,6 @@ class ScrapingError(Icons8CollectorError):
 
 
 class DownloadError(Icons8CollectorError):
-    """Raised when downloading an icon fails."""
 
     def __init__(
         self,
@@ -109,7 +97,6 @@ class DownloadError(Icons8CollectorError):
 
 
 class ConversionError(Icons8CollectorError):
-    """Raised when converting an image fails."""
 
     def __init__(
         self,
@@ -131,7 +118,6 @@ class ConversionError(Icons8CollectorError):
 
 
 class ConfigurationError(Icons8CollectorError):
-    """Raised when configuration is invalid or missing."""
 
     def __init__(
         self,
@@ -150,7 +136,6 @@ class ConfigurationError(Icons8CollectorError):
 
 
 class BrowserError(Icons8CollectorError):
-    """Raised when browser operations fail."""
 
     def __init__(
         self,
@@ -169,7 +154,6 @@ class BrowserError(Icons8CollectorError):
 
 
 class ValidationError(Icons8CollectorError):
-    """Raised when input validation fails."""
 
     def __init__(
         self,
