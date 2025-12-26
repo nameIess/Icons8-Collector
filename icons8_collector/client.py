@@ -185,8 +185,50 @@ class Icons8Client:
                 field_name="url"
             )
     
+    @staticmethod
+    def validate_collection_url_static(url: str) -> None:
+        """Static method to validate collection URL without instantiating client."""
+        if not url or not isinstance(url, str):
+            raise ValidationError(
+                "Collection URL must be a non-empty string",
+                field_name="url"
+            )
+        
+        try:
+            parsed = urlparse(url)
+        except Exception as e:
+            raise ValidationError(
+                f"Invalid URL format",
+                field_name="url",
+                original_error=e
+            )
+        
+        if parsed.scheme not in Icons8URLs.ALLOWED_SCHEMES:
+            raise ValidationError(
+                f"Only HTTPS URLs are allowed. Got: {parsed.scheme}",
+                field_name="url"
+            )
+        
+        if not Icons8URLs.is_valid_domain(url, Icons8URLs.ALLOWED_COLLECTION_DOMAINS):
+            raise ValidationError(
+                f"URL domain not allowed: {parsed.netloc}. Only Icons8 domains are permitted.",
+                field_name="url"
+            )
+        
+        if '/collection/' not in parsed.path and '/collections/' not in parsed.path:
+            raise ValidationError(
+                "URL does not appear to be a valid Icons8 collection URL. "
+                "Expected path to contain '/collection/' or '/collections/'",
+                field_name="url"
+            )
+    
+    @staticmethod
+    def _is_retriable_status_code(status_code: int) -> bool:
+        """Check if HTTP status code should be retried."""
+        return status_code in (429, 500, 502, 503, 504)
+    
     @retry(
-        retry=retry_if_exception_type((requests.Timeout, requests.ConnectionError)),
+        retry=retry_if_exception_type((requests.Timeout, requests.ConnectionError, DownloadError)),
         stop=stop_after_attempt(MAX_RETRIES),
         wait=wait_exponential(multiplier=1, min=1, max=10),
         before_sleep=before_sleep_log(logger, logging.WARNING),
@@ -198,7 +240,6 @@ class Icons8Client:
                 url,
                 timeout=self.timeout,
                 stream=True,
-                allow_redirects=False,
             )
             response.raise_for_status()
         except requests.Timeout as e:
@@ -208,10 +249,20 @@ class Icons8Client:
             logger.warning(f"Connection error for {url}: {e}")
             raise
         except requests.HTTPError as e:
+            status_code = response.status_code
+            # Retry on retriable HTTP status codes (429, 5xx)
+            if self._is_retriable_status_code(status_code):
+                logger.warning(f"Retriable HTTP error {status_code} for {url}, will retry...")
+                raise DownloadError(
+                    f"HTTP error {status_code} while downloading (retriable)",
+                    url=url,
+                    status_code=status_code,
+                    original_error=e
+                )
             raise DownloadError(
-                f"HTTP error {response.status_code} while downloading",
+                f"HTTP error {status_code} while downloading",
                 url=url,
-                status_code=response.status_code,
+                status_code=status_code,
                 original_error=e
             )
         except requests.RequestException as e:
@@ -240,6 +291,7 @@ class Icons8Client:
                         url=url
                     )
             except ValueError:
+                # Ignore invalid or non-integer Content-Length; enforce limit while streaming below.
                 pass
         
         # Download with size limit
@@ -342,22 +394,15 @@ class Icons8Client:
                     field_name="output_path"
                 )
         
-        path_str = str(output_path)
-        if '..' in path_str or path_str.startswith('/') or path_str.startswith('\\'):
-            if base_dir:
-                try:
-                    resolved_path.relative_to(base_dir.resolve())
-                except ValueError:
-                    raise ValidationError(
-                        "Path contains potentially dangerous patterns",
-                        field_name="output_path"
-                    )
-        
         return resolved_path
     
     def close(self) -> None:
-        self.session.close()
-        logger.debug("Icons8Client session closed")
+        try:
+            self.session.close()
+        except Exception as exc:
+            logger.warning("Failed to close Icons8Client session: %s", exc)
+        else:
+            logger.debug("Icons8Client session closed")
     
     def __enter__(self) -> "Icons8Client":
         return self

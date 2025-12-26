@@ -1,6 +1,5 @@
 import argparse
 import getpass
-import logging
 import shutil
 import subprocess
 import sys
@@ -282,7 +281,11 @@ For more information, visit: https://github.com/nameIess/Icons8-Collector
         type=int,
         default=DEFAULT_SIZE,
         metavar='SIZE',
-        help=f'Icon size in pixels (default: {DEFAULT_SIZE})'
+        help=(
+            'Icon size in pixels; valid values: 16, 24, 32, 48, 64, 96, 128, 256, 512. '
+            'Other values will be adjusted to the nearest valid size '
+            f'(default: {DEFAULT_SIZE}).'
+        )
     )
     output_group.add_argument(
         '--output', '-o',
@@ -336,7 +339,17 @@ def validate_size(size: int) -> int:
     if size in VALID_SIZES:
         return size
     
-    # Find closest valid size
+    # Enforce an explicit maximum size to avoid silently clamping
+    max_size = max(VALID_SIZES)
+    if size > max_size:
+        msg = (
+            f"Requested size {size} exceeds maximum supported size {max_size}. "
+            "Please choose a smaller icon size."
+        )
+        logger.error(msg)
+        raise ValueError(msg)
+    
+    # Find closest valid size for other invalid values
     closest = min(VALID_SIZES, key=lambda x: abs(x - size))
     logger.warning(f"Size {size} not in valid sizes, using closest: {closest}")
     return closest
@@ -445,10 +458,8 @@ def run_download(
     converted = 0
     errors: list[str] = []
     
-    # Create client with retry support
-    client = Icons8Client()
-    
-    try:
+    # Create client with retry support (using context manager for proper cleanup)
+    with Icons8Client() as client:
         for i, icon in enumerate(icons, 1):
             name = icon.name or f'icon_{i}'
             safe_name = sanitize_filename(name, f'icon_{i}')
@@ -481,9 +492,6 @@ def run_download(
                 print("✗")
                 errors.append(f"Download failed for {name}: {e}")
                 logger.warning(f"Download error for {name}: {e}")
-    
-    finally:
-        client.close()
     
     # Clean up temp directory
     if temp_png_path and temp_png_path.exists():

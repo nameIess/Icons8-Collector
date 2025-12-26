@@ -181,9 +181,7 @@ async def scrape_collection(
     headless: bool = True
 ) -> list[Icon]:
     # Validate inputs using centralized client validation
-    client = Icons8Client()
-    client.validate_collection_url(url)
-    client.close()
+    Icons8Client.validate_collection_url_static(url)
     validate_size(size)
     validate_credentials(email, password)
     
@@ -232,7 +230,7 @@ async def scrape_collection(
         else:
             raise AuthenticationError(
                 "No icons visible and no credentials provided. "
-                "Please provide --email and --password arguments."
+                "Please provide --email and --password arguments or configure your credentials via environment variables."
             )
         
         logger.debug("Loading collection page...")

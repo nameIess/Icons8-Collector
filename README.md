@@ -28,9 +28,18 @@ A production-grade CLI tool for downloading icons from your [Icons8](https://ico
 
 2. **Create and activate a virtual environment:**
 
+   **Windows (PowerShell):**
+
    ```powershell
    python -m venv venv
    venv\Scripts\activate.ps1
+   ```
+
+   **macOS/Linux (bash/zsh):**
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
    ```
 
 3. **Install the project in editable mode:**
@@ -38,6 +47,8 @@ A production-grade CLI tool for downloading icons from your [Icons8](https://ico
    ```powershell
    pip install -e .
    ```
+
+   After installation, the `icons8-collector` command will be available globally in your terminal.
 
 4. **Install Playwright browsers (first time only):**
    ```powershell
@@ -69,11 +80,15 @@ icons8-collector --email "your@email.com" --password "yourPassword123" --format 
 - `--format`: `png`, `ico`, or `both` (default: `ico`)
 - `--url`: The full URL to your Icons8 collection
 
+> ⚠️ **Security Note:** Passing passwords via command-line arguments may expose them in shell history or process lists. For better security, use interactive mode for the first run (`icons8-collector --interactive`) which prompts for credentials securely.
+
 ### Example Command
 
 ```powershell
-icons8-collector --email "demo.user@example.com" --password "MySecretPass!" --format "png" --url "https://icons8.com/icons/collections/abcd1234efgh5678"
+icons8-collector --email "demo.user@example.com" --format "png" --url "https://icons8.com/icons/collections/abcd1234efgh5678"
 ```
+
+When run, you will be prompted for your password securely (not visible in terminal).
 
 ---
 
