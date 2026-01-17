@@ -82,26 +82,40 @@ async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
     return context, p
 
 
-async def scroll_to_load_icons(page: "Page", max_scrolls: int = 20) -> int:
+async def scroll_to_load_icons(page: "Page", max_scrolls: int = 100) -> int:
     logger.debug("Scrolling to load icons...")
     print("  📜 Scrolling to load all icons...")
+    
     prev_count = 0
+    stable_count_checks = 0
+    MAX_STABLE_CHECKS = 5  # Stop after count is stable for this many checks
     
     for i in range(max_scrolls):
+        # Scroll to bottom
         await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-        await asyncio.sleep(1.5)
         
+        # Random wait to let content load and mimic human behavior
+        await asyncio.sleep(2)
+        
+        # Get current count
         icon_count = await page.locator('div.app-grid-icon__image img').count()
         if icon_count == 0:
             icon_count = await page.locator('img[srcset*="icons8.com"]').count()
+            
+        logger.debug(f"Scroll {i + 1}: Found {icon_count} icons (Previous: {prev_count})")
         
-        logger.debug(f"Scroll {i + 1}: Found {icon_count} icon elements")
-        
-        # Stop if count hasn't changed after several scrolls
-        if icon_count == prev_count and i > 5 and icon_count > 0:
-            break
-        prev_count = icon_count
-    
+        if icon_count == prev_count:
+            stable_count_checks += 1
+            if stable_count_checks >= MAX_STABLE_CHECKS:
+                logger.info(f"Icon count stable at {icon_count} after {i+1} scrolls. Stop scrolling.")
+                break
+        else:
+            stable_count_checks = 0
+            prev_count = icon_count
+            
+        # Optional: Try to find and click a "Load More" button if it exists
+        # await page.click('button:has-text("Load more")', timeout=500)
+            
     return prev_count
 
 

@@ -102,7 +102,15 @@ def convert_png_to_ico(
         temp_path = ico_path.with_suffix('.ico.tmp')
         success = False
         try:
-            img.save(temp_path, format='ICO', sizes=[(img.width, img.height)])
+            # Standard Windows ICO sizes
+            ico_sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (24, 24), (16, 16)]
+            
+            # Filter sizes larger than the original image to avoid upscaling artifacts
+            valid_sizes = [s for s in ico_sizes if s[0] <= img.width and s[1] <= img.height]
+            if not valid_sizes:
+                valid_sizes = [(img.width, img.height)]
+
+            img.save(temp_path, format='ICO', sizes=valid_sizes)
             
             # Verify the temp file was created and has content
             if verify_output:
