@@ -50,7 +50,8 @@ def validate_image_dimensions(img: Image.Image, source_path: Path) -> None:
 def convert_png_to_ico(
     png_path: str | Path, 
     ico_path: str | Path,
-    verify_output: bool = True
+    verify_output: bool = True,
+    generate_layers: bool = True
 ) -> None:
     png_path = Path(png_path)
     ico_path = Path(ico_path)
@@ -102,12 +103,16 @@ def convert_png_to_ico(
         temp_path = ico_path.with_suffix('.ico.tmp')
         success = False
         try:
-            # Standard Windows ICO sizes
-            ico_sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (24, 24), (16, 16)]
-            
-            # Filter sizes larger than the original image to avoid upscaling artifacts
-            valid_sizes = [s for s in ico_sizes if s[0] <= img.width and s[1] <= img.height]
-            if not valid_sizes:
+            if generate_layers:
+                # Standard Windows ICO sizes
+                ico_sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (24, 24), (16, 16)]
+                
+                # Filter sizes larger than the original image to avoid upscaling artifacts
+                valid_sizes = [s for s in ico_sizes if s[0] <= img.width and s[1] <= img.height]
+                if not valid_sizes:
+                    valid_sizes = [(img.width, img.height)]
+            else:
+                # Use only the original image size
                 valid_sizes = [(img.width, img.height)]
 
             img.save(temp_path, format='ICO', sizes=valid_sizes)
