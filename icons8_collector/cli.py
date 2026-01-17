@@ -15,18 +15,18 @@ from .auth import _mask_email
 logger = get_logger("cli")
 
 
-# ============================================================================
+# ============================================================================ 
 # Constants
-# ============================================================================
+# ============================================================================ 
 
 DEFAULT_SIZE = 256
 DEFAULT_OUTPUT_DIR = "data"
 VALID_SIZES = [16, 24, 32, 48, 64, 96, 128, 256, 512]
 
 
-# ============================================================================
+# ============================================================================ 
 # Data Classes and Enums
-# ============================================================================
+# ============================================================================ 
 
 class OutputFormat(Enum):
     PNG = "png"
@@ -40,14 +40,15 @@ class UserConfig:
     email: Optional[str]
     password: Optional[str]
     output_format: OutputFormat
+    windows_ico: bool
     size: int
     headless: bool
     output_dir: str
 
 
-# ============================================================================
+# ============================================================================ 
 # Interactive Mode Functions
-# ============================================================================
+# ============================================================================ 
 
 
 def clear_screen() -> None:
@@ -133,34 +134,62 @@ def get_interactive_input() -> Optional[UserConfig]:
     output_format = format_map[format_choice]
     print("  │")
     print_section_end()
-    
+
+    # ICO Type (Only if ICO is involved)
+    windows_ico = True
+    if output_format in [OutputFormat.ICO, OutputFormat.BOTH]:
+        print_section("ICO TYPE")
+        print("  │")
+        print("  │  Standard Windows Icons contain multiple sizes")
+        print("  │  (16, 24, 32, 48, 64, 128, 256) in a single file.")
+        print("  │")
+        print_option(1, "Windows Standard (Multi-size)", default=True)
+        print_option(2, "Fixed Size (Single layer only)")
+        print("  │")
+        ico_choice = get_input("Select type", "1")
+        windows_ico = ico_choice != '2'
+        print("  │")
+        print_section_end()
+    else:
+        # For PNG only, windows_ico concept doesn't apply effectively, 
+        # but we set False to trigger size selection
+        windows_ico = False
+
     # Icon size
-    print_section("ICON SIZE")
-    print("  │")
-    print_option(1, "64px  - Small")
-    print_option(2, "128px - Medium")
-    print_option(3, "256px - Large (Best Quality)", default=True)
-    print_option(4, "512px - Extra Large")
-    print_option(5, "Custom size")
-    print("  │")
-    size_choice = get_input("Select size", "3")
-    size_map = {'1': 64, '2': 128, '3': 256, '4': 512}
+    size = 256  # Default fallback
     
-    if size_choice in size_map:
-        size = size_map[size_choice]
-    elif size_choice == '5':
-        custom = get_input("Enter custom size (px)", "256")
-        if custom.isdigit():
-            size = int(custom)
-            if size < 16 or size > 512:
-                print("  │  ⚠ Size must be between 16 and 512. Using 256.")
+    if not windows_ico:
+        print_section("ICON SIZE")
+        print("  │")
+        print_option(1, "64px  - Small")
+        print_option(2, "128px - Medium")
+        print_option(3, "256px - Large (Best Quality)", default=True)
+        print_option(4, "512px - Extra Large")
+        print_option(5, "Custom size")
+        print("  │")
+        size_choice = get_input("Select size", "3")
+        size_map = {'1': 64, '2': 128, '3': 256, '4': 512}
+        
+        if size_choice in size_map:
+            size = size_map[size_choice]
+        elif size_choice == '5':
+            custom = get_input("Enter custom size (px)", "256")
+            if custom.isdigit():
+                size = int(custom)
+                if size < 16 or size > 512:
+                    print("  │  ⚠ Size must be between 16 and 512. Using 256.")
+                    size = 256
+            else:
                 size = 256
         else:
             size = 256
+        print("  │")
+        print_section_end()
     else:
+        # Implicitly use 256 for Windows Standard to ensure high quality downscaling
         size = 256
-    print("  │")
-    print_section_end()
+        if output_format in [OutputFormat.ICO, OutputFormat.BOTH]:
+            print("\n  ℹ  Will generate and combine all standard sizes (16px to 256px) into the ICO.")
     
     # Output directory
     print_section("OUTPUT DIRECTORY")
@@ -194,6 +223,8 @@ def get_interactive_input() -> Optional[UserConfig]:
         OutputFormat.BOTH: 'Both PNG and ICO'
     }
     print(f"  │  Format:     {format_names[output_format]}")
+    if output_format != OutputFormat.PNG:
+        print(f"  │  ICO Type:   {'Windows Standard (Multi-size)' if windows_ico else 'Fixed Size (Single)'}")
     print(f"  │  Size:       {size}px")
     print(f"  │  Output:     {output_dir}")
     print(f"  │  Browser:    {'Headless' if headless else 'Visible'}")
@@ -211,15 +242,16 @@ def get_interactive_input() -> Optional[UserConfig]:
         email=email if email else None,
         password=password if password else None,
         output_format=output_format,
+        windows_ico=windows_ico,
         size=size,
         headless=headless,
         output_dir=output_dir
     )
 
 
-# ============================================================================
+# ============================================================================ 
 # CLI Argument Parser
-# ============================================================================
+# ============================================================================ 
 
 def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -286,6 +318,11 @@ For more information, visit: https://github.com/nameIess/Icons8-Collector
             'Other values will be adjusted to the nearest valid size '
             f'(default: {DEFAULT_SIZE}).'
         )
+    )
+    output_group.add_argument(
+        '--fixed-ico',
+        action='store_true',
+        help='Generate ICO with single fixed size (disable Windows multi-size ICO)'
     )
     output_group.add_argument(
         '--output', '-o',
@@ -355,9 +392,9 @@ def validate_size(size: int) -> int:
     return closest
 
 
-# ============================================================================
+# ============================================================================ 
 # Output Functions
-# ============================================================================
+# ============================================================================ 
 
 def print_download_complete(
     output_format: OutputFormat,
@@ -395,9 +432,9 @@ def print_error(message: str) -> None:
     print(f"\n  ❌ Error: {message}\n", file=sys.stderr)
 
 
-# ============================================================================
+# ============================================================================ 
 # Main Entry Point
-# ============================================================================
+# ============================================================================ 
 
 def run_download(
     url: str,
@@ -407,6 +444,7 @@ def run_download(
     output_format: OutputFormat,
     output_dir: str,
     headless: bool,
+    windows_ico: bool = True,
 ) -> int:
     from .scraper import get_collection_icons
     from .client import Icons8Client, sanitize_filename
@@ -477,7 +515,11 @@ def run_download(
                 if output_format in (OutputFormat.ICO, OutputFormat.BOTH):
                     ico_file = ico_path / f"{safe_name}.ico"
                     try:
-                        convert_png_to_ico(png_file, ico_file)
+                        convert_png_to_ico(
+                            png_file, 
+                            ico_file, 
+                            generate_layers=windows_ico
+                        )
                         converted += 1
                         logger.debug(f"Converted {name} to ICO")
                     except ConversionError as e:
@@ -550,6 +592,7 @@ def main(args: Optional[list[str]] = None) -> int:
                 output_format=user_input.output_format,
                 output_dir=user_input.output_dir,
                 headless=user_input.headless,
+                windows_ico=user_input.windows_ico,
             )
         else:
             # CLI mode
@@ -570,6 +613,7 @@ def main(args: Optional[list[str]] = None) -> int:
                 output_format=format_map[parsed_args.format],
                 output_dir=parsed_args.output,
                 headless=not parsed_args.visible,
+                windows_ico=not parsed_args.fixed_ico,
             )
     
     except Icons8CollectorError as e:
