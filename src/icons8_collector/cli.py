@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import getpass
 import logging
+import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,9 +11,8 @@ from typing import Optional
 from . import __version__
 from .logging_config import setup_logging, get_logger
 from .auth import _mask_email
-from .client import Icons8Client, sanitize_filename, DownloadError
-from .scraper import scrape_collection
-from .converter import SVGConverter, ConversionError
+from .scraper import scrape_collection, download_files_via_browser
+from .converter import IconConverter, ConversionError
 from .exceptions import Icons8CollectorError
 
 logger = get_logger("cli")
@@ -250,7 +250,8 @@ async def async_run_download(
     
     try:
         # We don't pass size anymore, letting scraper default or use what's needed for SVG
-        icons, cookies, user_agent = await scrape_collection(url, email=email, password=password, headless=headless)
+        # We also ignore the cookies/ua return since download_files_via_browser handles it internally
+        icons, _, _ = await scrape_collection(url, email=email, password=password, headless=headless)
     except Icons8CollectorError as e:
         print(f"\n  ❌ Error: {e}")
         return 1
@@ -262,37 +263,16 @@ async def async_run_download(
         print("\n  ⚠ No icons found.")
         return 1
 
-    # Prepare session data for download
-    client_cookies = {c['name']: c['value'] for c in cookies}
-    client_headers = {'User-Agent': user_agent}
-
     # Prepare directories
     base_path = Path(output_dir)
-    svg_dir = base_path / "svg"
-    svg_dir.mkdir(parents=True, exist_ok=True)
+    png_dir = base_path / "png"
+    png_dir.mkdir(parents=True, exist_ok=True)
     
-    # 2. Download SVGs
-    print(f"\n  📥 Downloading SVGs...")
-    downloaded_files = []
-    errors = []
+    # 2. Download PNGs using Browser (Stealth)
+    # We use the scraper module's download function to share the session and bypass 403
+    downloaded_paths = await download_files_via_browser(icons, png_dir, headless)
     
-    with Icons8Client(headers=client_headers, cookies=client_cookies) as client:
-        for i, icon in enumerate(icons, 1):
-            name = icon.name or f'icon_{i}'
-            safe_name = sanitize_filename(name, f'icon_{i}')
-            svg_path = svg_dir / f"{safe_name}.svg"
-            
-            print(f"  [{i}/{len(icons)}] {name}...", end=" ", flush=True)
-            
-            try:
-                # Synchronous download in this loop is fine for CLI responsiveness
-                client.download_icon(icon.url, svg_path)
-                downloaded_files.append(svg_path)
-                print("✓")
-            except DownloadError as e:
-                print("✗")
-                logger.warning(f"Download failed for {name}: {e}")
-                errors.append(f"{name}: {e}")
+    downloaded_files = [Path(p) for p in downloaded_paths]
 
     if not downloaded_files:
         print("\n  ❌ No files downloaded successfully.")
@@ -305,28 +285,36 @@ async def async_run_download(
     # Determine requested formats
     requested_formats = ["ico", "icns"] if output_format == "both" else [output_format]
     
-    # Initialize SVG Converter (manages browser for rasterization)
+    # Initialize Icon Converter (Pillow based)
+    converter = IconConverter()
+    total = len(downloaded_files)
+    for i, img_path in enumerate(downloaded_files, 1):
+        print(f"  [{i}/{total}] Converting {img_path.stem}...", end=" ", flush=True)
+        try:
+            # Output to the parent directory (root of output_dir), not png_dir
+            converter.convert_image_to_formats(
+                img_path, 
+                output_dir=base_path,
+                formats=requested_formats
+            )
+            converted_count += 1
+            print("✓")
+            
+            # Cleanup: Delete the source PNG after conversion
+            try:
+                img_path.unlink()
+            except Exception:
+                pass
+                
+        except ConversionError as e:
+            print("✗")
+            logger.error(f"Conversion failed for {img_path.name}: {e}")
+
+    # Cleanup: Remove the temporary PNG directory
     try:
-        async with SVGConverter(headless=headless) as converter:
-            total = len(downloaded_files)
-            for i, svg_path in enumerate(downloaded_files, 1):
-                print(f"  [{i}/{total}] Converting {svg_path.stem}...", end=" ", flush=True)
-                try:
-                    # Output to the parent directory (root of output_dir), not svg_dir
-                    await converter.convert_svg_to_formats(
-                        svg_path, 
-                        output_dir=base_path,
-                        formats=requested_formats
-                    )
-                    converted_count += 1
-                    print("✓")
-                except ConversionError as e:
-                    print("✗")
-                    logger.error(f"Conversion failed for {svg_path.name}: {e}")
-                    errors.append(f"Conversion {svg_path.name}: {e}")
-    except Exception as e:
-        print(f"\n  ❌ Critical conversion error: {e}")
-        return 1
+        shutil.rmtree(png_dir)
+    except Exception:
+        pass
 
     # Summary
     print("\n")
@@ -336,16 +324,9 @@ async def async_run_download(
     print("  ║                                                          ║")
     print("  ╚══════════════════════════════════════════════════════════╝")
     print("\n")
-    print(f"  📁 SVGs Downloaded: {len(downloaded_files)}")
+    print(f"  📁 PNGs Downloaded: {len(downloaded_files)}")
     print(f"  🎨 Icons Converted: {converted_count}")
     print(f"  📂 Output Location: {base_path.absolute()}")
-    
-    if errors:
-        print(f"\n  ⚠  {len(errors)} error(s) occurred:")
-        for e in errors[:5]:
-            print(f"     - {e}")
-        if len(errors) > 5:
-            print(f"     ... and {len(errors) - 5} more")
             
     return 0
 

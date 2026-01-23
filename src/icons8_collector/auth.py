@@ -16,9 +16,38 @@ def validate_credentials(email: Optional[str], password: Optional[str]) -> None:
 
 
 async def check_login_status(page: "Page") -> bool:
-    icons_count = await page.locator(
-        'div.app-grid-icon__image img, img[srcset*="icons8.com"]'
-    ).count()
+    """
+    Determines if the user is logged in by checking for specific UI elements.
+    Returns True if logged in, False otherwise.
+    """
+    # Check for definitive "Not Logged In" indicators (Login buttons)
+    is_guest = await page.evaluate('''() => {
+        const btns = Array.from(document.querySelectorAll('a, button'));
+        return btns.some(el => {
+            const text = (el.innerText || '').trim().toLowerCase();
+            return (text === 'sign in' || text === 'log in') && el.offsetParent !== null; // visible
+        });
+    }''')
+    
+    if is_guest:
+        return False
+
+    # Check for definitive "Logged In" indicators (Avatar, Account link)
+    is_user = await page.evaluate('''() => {
+        // Check for common avatar/profile classes or links
+        if (document.querySelector('.user-avatar, .profile-icon, a[href*="/account"]')) return true;
+        
+        // Check for "My Collections" or similar user-specific text
+        const bodyText = document.body.innerText;
+        return bodyText.includes('My collections') || bodyText.includes('Account');
+    }''')
+    
+    if is_user:
+        return True
+
+    # Fallback: If we see icons, we assume we have access (might be public collection, but effective "login" for scraping)
+    # Using generic robust selector similar to scraper.py
+    icons_count = await page.locator('img[src*="icons8.com"]').count()
     return icons_count > 0
 
 

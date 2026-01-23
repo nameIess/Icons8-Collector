@@ -40,7 +40,7 @@ class Icons8URLs:
     ALLOWED_SCHEMES = ["https"]
     
     @classmethod
-    def build_icon_url(cls, icon_id: str, size: int = 256, fmt: str = "svg") -> str:
+    def build_icon_url(cls, icon_id: str, size: int = 512, fmt: str = "png") -> str:
         params = urlencode({
             "size": size,
             "id": icon_id,
@@ -87,7 +87,7 @@ class Icon:
 DEFAULT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "image/svg+xml,image/*,*/*;q=0.8",
+    "Accept": "image/png,image/*,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
 }
 
