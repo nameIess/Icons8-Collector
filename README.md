@@ -102,6 +102,6 @@ This command scrapes the collection, downloads the best source quality, and gene
 
 ## 📝 License
 
-This project is licensed under the [MIT-LICENSE](LICENSE).
+This project is licensed under the [MIT-LICENSE](License).
 
 ---
