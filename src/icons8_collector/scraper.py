@@ -139,10 +139,6 @@ async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
 
 
 async def human_click(page: "Page", selector: str) -> bool:
-    """
-    Performs a human-like click sequence on an element:
-    Hover -> Jitter -> Pause -> Mousedown -> Pause -> Mouseup -> Click.
-    """
     try:
         locator = page.locator(selector).first
         if not await locator.is_visible():
@@ -170,10 +166,6 @@ async def human_click(page: "Page", selector: str) -> bool:
 
 
 async def human_scroll(page: "Page", max_scrolls: int = 100) -> int:
-    """
-    Scrolls the page like a human to trigger lazy loading and avoid bot detection.
-    Mimics 'better_scalper' behavior: smooth scrolling, random delays, mouse movement.
-    """
     logger.debug("Starting human-like scrolling...")
     print("  📜 Scrolling to load content (Human-like behavior)...")
     
@@ -232,9 +224,6 @@ async def human_scroll(page: "Page", max_scrolls: int = 100) -> int:
 
 
 async def extract_icons_robust(page: "Page", size: int) -> list[Icon]:
-    """
-    Robustly extracts icons, filtering for the main collection grid to avoid sidebar noise.
-    """
     logger.info("Extracting icons using robust heuristic...")
     
     # Execute JS to find candidates
@@ -283,11 +272,20 @@ async def extract_icons_robust(page: "Page", size: int) -> list[Icon]:
         if 'icons8.com' not in src and 'icons8.com' not in srcset:
             continue
             
+        # Check 3: Extract ID - Prioritize Numeric IDs
+        # Format usually: ...id=12345... or /icon/12345/
         combined_url = src + srcset
-        id_match = re.search(r'[?&]id=([A-Za-z0-9_-]+)', combined_url)
         
+        # Try strictly numeric ID first (most reliable for API)
+        id_match = re.search(r'[?&]id=(\d+)', combined_url)
         if not id_match:
-            id_match = re.search(r'/icon/([A-Za-z0-9_-]+)/', combined_url)
+            id_match = re.search(r'/icon/(\d+)/', combined_url)
+            
+        # Fallback to alphanumeric if numeric fails (some icons might use slugs, though rare for API)
+        if not id_match:
+             id_match = re.search(r'[?&]id=([A-Za-z0-9_-]+)', combined_url)
+        if not id_match:
+             id_match = re.search(r'/icon/([A-Za-z0-9_-]+)/', combined_url)
             
         if id_match:
             icon_id = id_match.group(1)
@@ -301,12 +299,29 @@ async def extract_icons_robust(page: "Page", size: int) -> list[Icon]:
                 if not name:
                     name = f'icon-{icon_id}'
                 
+                # If we have a numeric ID, build the standard API URL
+                if icon_id.isdigit():
+                    url = Icons8URLs.build_icon_url(icon_id, size, fmt="png")
+                else:
+                    # If we grabbed a slug/name, and the src is from img.icons8.com, 
+                    # we try to manipulate the src directly to get a high-res version.
+                    # e.g. https://img.icons8.com/ios/50/menu.png -> https://img.icons8.com/ios/512/menu.png
+                    if 'img.icons8.com' in src:
+                        # Replace size path segment (e.g., /50/) with /512/
+                        url = re.sub(r'/\d{2,3}/', f'/{size}/', src)
+                        # Ensure it ends with .png (if it was something else)
+                        if not url.endswith('.png') and 'format=' not in url:
+                             url += '?format=png'
+                    else:
+                        # Fallback to building generic URL with the ID we found
+                        url = Icons8URLs.build_icon_url(icon_id, size, fmt="png")
+
                 icons.append(Icon(
                     id=icon_id,
                     name=name,
-                    url=Icons8URLs.build_icon_url(icon_id, size, fmt="png")
+                    url=url
                 ))
-                logger.debug(f"Found: {name} (ID: {icon_id})")
+                logger.debug(f"Found: {name} (ID: {icon_id}) URL: {url}")
     
     logger.info(f"Robust extraction found {len(icons)} icons")
     return icons
@@ -345,10 +360,6 @@ async def download_files_via_browser(
     output_dir: Any, # Path
     headless: bool = True
 ) -> List[str]:
-    """
-    Downloads files by navigating the browser directly to the resource URL.
-    This mimics a user opening the image in a new tab, bypassing most API protections.
-    """
     from pathlib import Path
     output_dir = Path(output_dir)
     

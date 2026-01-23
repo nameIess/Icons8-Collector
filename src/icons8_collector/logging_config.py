@@ -60,11 +60,6 @@ def get_logger(name: str) -> logging.Logger:
 
 
 class ProgressLogger:
-    """Provides a consistent interface for progress reporting.
-    
-    Uses logging when a logger is provided, or falls back to direct console
-    output when no logger is available.
-    """
     
     def __init__(
         self,

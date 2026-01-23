@@ -16,10 +16,6 @@ def validate_credentials(email: Optional[str], password: Optional[str]) -> None:
 
 
 async def check_login_status(page: "Page") -> bool:
-    """
-    Determines if the user is logged in by checking for specific UI elements.
-    Returns True if logged in, False otherwise.
-    """
     # Check for definitive "Not Logged In" indicators (Login buttons)
     is_guest = await page.evaluate('''() => {
         const btns = Array.from(document.querySelectorAll('a, button'));

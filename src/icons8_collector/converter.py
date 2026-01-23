@@ -14,19 +14,12 @@ WIN_SIZES = [16, 32, 48, 64, 128, 256]
 MAC_SIZES = [16, 32, 64, 128, 256, 512, 1024]
 
 class IconConverter:
-    """
-    Handles conversion of source PNG files to multi-resolution ICO and ICNS files
-    using Pillow for high-quality resizing.
-    """
     
     def __init__(self):
         pass
 
     def resize_image(self, source_img: Image.Image, sizes: List[int]) -> Dict[int, Image.Image]:
-        """
-        Resizes a single Image into multiple sizes.
-        Returns a dictionary mapping size (int) -> PIL.Image.
-        """
+
         results = {}
         # Ensure image is in RGBA for transparency support
         if source_img.mode != 'RGBA':
@@ -40,19 +33,12 @@ class IconConverter:
         return results
 
     def create_ico(self, images: Dict[int, Image.Image], output_path: Path):
-        """
-        Saves a dictionary of {size: Image} as a multi-size .ico file.
-        Uses a custom packer to avoid Pillow's internal resampling.
-        """
         if not images:
             raise ConversionError("No images provided for ICO creation")
         
         self._write_custom_ico(images, output_path)
 
     def _write_custom_ico(self, images: Dict[int, Image.Image], output_path: Path):
-        """
-        Packs distinct PIL images into an ICO file without resampling.
-        """
         sorted_sizes = sorted(images.keys(), reverse=True) 
         
         png_blobs = []
@@ -91,9 +77,6 @@ class IconConverter:
         logger.debug(f"Saved multi-size ICO to {output_path}")
 
     def create_icns(self, images: Dict[int, Image.Image], output_path: Path):
-        """
-        Saves a dictionary of {size: Image} as a multi-size .icns file.
-        """
         if not images:
             raise ConversionError("No images provided for ICNS creation")
             
@@ -109,9 +92,6 @@ class IconConverter:
             raise ConversionError(f"Failed to save ICNS file: {e}", original_error=e)
 
     def convert_image_to_formats(self, image_path: Path, output_dir: Optional[Path] = None, formats: List[str] = ["ico", "icns"]):
-        """
-        Full workflow: Resize -> Save ICO / Save ICNS based on requested formats.
-        """
         if output_dir is None:
             output_dir = image_path.parent
             

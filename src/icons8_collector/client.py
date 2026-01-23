@@ -187,7 +187,6 @@ class Icons8Client:
     
     @staticmethod
     def validate_collection_url_static(url: str) -> None:
-        """Static method to validate collection URL without instantiating client."""
         if not url or not isinstance(url, str):
             raise ValidationError(
                 "Collection URL must be a non-empty string",
@@ -224,7 +223,6 @@ class Icons8Client:
     
     @staticmethod
     def _is_retriable_status_code(status_code: int) -> bool:
-        """Check if HTTP status code should be retried."""
         return status_code in (429, 500, 502, 503, 504)
     
     @retry(
