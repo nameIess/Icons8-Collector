@@ -152,7 +152,7 @@ async def extract_icons_from_dom(page: "Page", size: int) -> list[Icon]:
                     icons.append(Icon(
                         id=icon_id,
                         name=name,
-                        url=Icons8URLs.build_icon_url(icon_id, size)
+                        url=Icons8URLs.build_icon_url(icon_id, size, fmt="svg")
                     ))
                     logger.debug(f"Found: {name} (ID: {icon_id})")
     
@@ -178,7 +178,7 @@ async def extract_icons_via_regex(page: "Page", size: int) -> list[Icon]:
             icons.append(Icon(
                 id=icon_id,
                 name=f'icon-{icon_id}',
-                url=Icons8URLs.build_icon_url(icon_id, size)
+                url=Icons8URLs.build_icon_url(icon_id, size, fmt="svg")
             ))
     
     if icons:
@@ -286,7 +286,11 @@ async def scrape_collection(
                 "The page structure may have changed or the collection may be empty."
             )
         
-        return icons
+        # Capture session data for download
+        cookies = await context.cookies()
+        user_agent = await page.evaluate("navigator.userAgent")
+        
+        return icons, cookies, user_agent
         
     finally:
         await context.close()
@@ -300,4 +304,6 @@ def get_collection_icons(
     password: Optional[str] = None,
     headless: bool = True
 ) -> list[Icon]:
-    return asyncio.run(scrape_collection(url, size, email, password, headless))
+    # Returns only icons for backward compatibility
+    icons, _, _ = asyncio.run(scrape_collection(url, size, email, password, headless))
+    return icons

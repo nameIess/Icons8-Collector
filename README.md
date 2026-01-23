@@ -1,17 +1,18 @@
 # Icons8 Collector
 
-A production-grade CLI tool for downloading icons from your [Icons8](https://icons8.com/) collections. Supports PNG and ICO formats, batch downloads, and robust error handling.
+A production-grade CLI tool for downloading icons from your [Icons8](https://icons8.com/) collections. It automatically fetches high-quality SVGs and generates production-ready, multi-size **ICO** (Windows) and **ICNS** (macOS) files.
 
 ---
 
 ## Features
 
-- Download all icons from any Icons8 collection URL
-- Supports PNG, ICO, or both formats
-- Batch download with progress and error reporting
-- Headless or visible browser automation (uses Playwright)
-- Secure authentication (no credentials stored)
-- Cross-platform (Windows, macOS, Linux)
+- **SVG-First Workflow**: Downloads vector sources for perfect sharpness at any resolution.
+- **Multi-Size Generation**:
+  - **.ico**: Includes 16, 32, 48, 64, 128, 256 px layers.
+  - **.icns**: Includes 16, 32, 64, 128, 256, 512, 1024 px layers.
+- **Crisp Rasterization**: Uses browser-engine rendering to ensure icons look exactly as designed.
+- **Batch Processing**: Handles entire collections seamlessly.
+- **Secure**: Authentication credentials are handled securely and never stored in plain text.
 
 ---
 
@@ -23,8 +24,6 @@ A production-grade CLI tool for downloading icons from your [Icons8](https://ico
    git clone https://github.com/nameIess/Icons8-Collector.git
    cd Icons8-Collector
    ```
-
-   Or [download as ZIP](https://github.com/nameIess/Icons8-Collector/archive/refs/heads/master.zip)
 
 2. **Create and activate a virtual environment:**
 
@@ -57,51 +56,35 @@ A production-grade CLI tool for downloading icons from your [Icons8](https://ico
 
 ---
 
-## Manual Setup (Dependencies Only)
-
-If you want to install only the dependencies (not as an editable package):
-
-```powershell
-pip install -r requirements.txt
-python -m playwright install chromium
-```
-
----
-
 ## Usage Example
 
-Download all icons from a collection as PNG and ICO:
+Download all icons from a collection and generate ICO/ICNS files:
 
 ```powershell
-icons8-collector --email "your@email.com" --password "yourPassword123" --format "both" --url "https://icons8.com/icons/collections/yourcollectionid"
+icons8-collector --email "your@email.com" --password "yourPassword123" --url "https://icons8.com/icons/collections/yourcollectionid"
 ```
 
 - `--email` and `--password`: Your Icons8 account credentials
-- `--format`: `png`, `ico`, or `both` (default: `ico`)
 - `--url`: The full URL to your Icons8 collection
+- `--output`: Directory to save icons (default: `icons/`)
 
-> ⚠️ **Security Note:** Passing passwords via command-line arguments may expose them in shell history or process lists. For better security, use interactive mode for the first run (`icons8-collector --interactive`) which prompts for credentials securely.
-
-### Example Command
+> ⚠️ **Security Note:** Passing passwords via command-line arguments may expose them in shell history. For better security, use interactive mode:
 
 ```powershell
-icons8-collector --email "demo.user@example.com" --format "png" --url "https://icons8.com/icons/collections/abcd1234efgh5678"
+icons8-collector --interactive
 ```
-
-When run, you will be prompted for your password securely (not visible in terminal).
 
 ---
 
 ## Additional Options
 
-| Option          | Description                          | Default  |
-| --------------- | ------------------------------------ | -------- |
-| `--size`        | Icon size in pixels                  | `256`    |
-| `--output`      | Output directory                     | `data`   |
-| `--visible`     | Show browser window                  | headless |
-| `--interactive` | Run in interactive mode with prompts | false    |
-| `--verbose`     | Enable verbose output                | false    |
-| `--debug`       | Enable debug output                  | false    |
+| Option          | Description                          | Default    |
+| --------------- | ------------------------------------ | ---------- |
+| `--output`      | Output directory                     | `icons`    |
+| `--visible`     | Show browser window                  | headless   |
+| `--interactive` | Run in interactive mode with prompts | false      |
+| `--verbose`     | Enable verbose output                | false      |
+| `--debug`       | Enable debug output                  | false      |
 
 See all options:
 
