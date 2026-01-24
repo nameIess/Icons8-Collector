@@ -138,33 +138,6 @@ async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
     return context, p
 
 
-async def human_click(page: "Page", selector: str) -> bool:
-    try:
-        locator = page.locator(selector).first
-        if not await locator.is_visible():
-            return False
-            
-        box = await locator.bounding_box()
-        if not box:
-            return False
-            
-        # Target a random point within the element
-        x = box["x"] + box["width"] / 2 + random.uniform(-5, 5)
-        y = box["y"] + box["height"] / 2 + random.uniform(-5, 5)
-        
-        await page.mouse.move(x, y, steps=random.randint(5, 15))
-        await asyncio.sleep(random.uniform(0.1, 0.3))
-        
-        await page.mouse.down()
-        await asyncio.sleep(random.uniform(0.05, 0.15)) # Hold click briefly
-        await page.mouse.up()
-        
-        return True
-    except Exception as e:
-        logger.debug(f"Human click failed for {selector}: {e}")
-        return False
-
-
 async def human_scroll(page: "Page", max_scrolls: int = 100) -> int:
     logger.debug("Starting human-like scrolling...")
     print("  📜 Scrolling to load content (Human-like behavior)...")
@@ -218,112 +191,51 @@ async def human_scroll(page: "Page", max_scrolls: int = 100) -> int:
             last_height = new_height
             
         if (i + 1) % 5 == 0:
+            logger.info(f"Scrolled {i+1} times, height: {new_height}")
             logger.debug(f"Scroll {i+1}: Height {new_height}px")
             
     return last_height
 
 
 async def extract_icons_robust(page: "Page", size: int) -> list[Icon]:
-    logger.info("Extracting icons using robust heuristic...")
+    logger.info("Extracting icons using DOM locator...")
     
-    # Execute JS to find candidates
-    raw_images = await page.evaluate('''() => {
-        // Try to find the main grid container first
-        const grid = document.querySelector('.app-collection-view, .collection-grid, main') || document.body;
-        
-        const images = Array.from(grid.querySelectorAll('img'));
-        return images.map(img => {
-            const rect = img.getBoundingClientRect();
-            // Check if inside a known icon container class
-            const isIconContainer = img.closest('.app-grid-icon') !== null || 
-                                  img.closest('.collection-icon') !== null;
-            
-            return {
-                src: img.getAttribute('src'),
-                srcset: img.getAttribute('srcset'),
-                alt: img.getAttribute('alt'),
-                width: rect.width,
-                height: rect.height,
-                top: rect.top,
-                isIconContainer: isIconContainer,
-                isVisible: rect.width > 20 && rect.height > 20 && rect.top >= 0
-            };
-        });
-    }''')
+    icon_imgs = page.locator('div.app-grid-icon__image img')
+    count = await icon_imgs.count()
+    
+    if count == 0:
+        logger.debug("Trying alternative selector: img[srcset*='icons8']")
+        icon_imgs = page.locator('img[srcset*="icons8.com"]')
+        count = await icon_imgs.count()
+    
+    if count == 0:
+        return []
+    
+    logger.info(f"Found {count} icon images via DOM")
     
     icons = []
     seen_ids: set[str] = set()
     
-    # Heuristic: Filter images. 
-    # If we found items with isIconContainer=True, prefer those.
-    has_explicit_containers = any(img['isIconContainer'] for img in raw_images)
-    
-    for img in raw_images:
-        if not img['isVisible']:
-            continue
-            
-        # If we found explicit containers, ignore random images that aren't inside one
-        if has_explicit_containers and not img['isIconContainer']:
-            continue
-            
-        src = img['src'] or ''
-        srcset = img['srcset'] or ''
+    for i in range(count):
+        img = icon_imgs.nth(i)
+        srcset = await img.get_attribute('srcset')
+        alt = await img.get_attribute('alt') or f'icon_{i}'
         
-        if 'icons8.com' not in src and 'icons8.com' not in srcset:
-            continue
-            
-        # Check 3: Extract ID - Prioritize Numeric IDs
-        # Format usually: ...id=12345... or /icon/12345/
-        combined_url = src + srcset
-        
-        # Try strictly numeric ID first (most reliable for API)
-        id_match = re.search(r'[?&]id=(\d+)', combined_url)
-        if not id_match:
-            id_match = re.search(r'/icon/(\d+)/', combined_url)
-            
-        # Fallback to alphanumeric if numeric fails (some icons might use slugs, though rare for API)
-        if not id_match:
-             id_match = re.search(r'[?&]id=([A-Za-z0-9_-]+)', combined_url)
-        if not id_match:
-             id_match = re.search(r'/icon/([A-Za-z0-9_-]+)/', combined_url)
-            
-        if id_match:
-            icon_id = id_match.group(1)
-            
-            # Filter out common UI icons by ID if known, or rely on container
-            if icon_id not in seen_ids:
-                seen_ids.add(icon_id)
-                
-                raw_name = img['alt'] or f'icon_{icon_id}'
-                name = raw_name.replace(' icon', '').strip()
-                if not name:
-                    name = f'icon-{icon_id}'
-                
-                # If we have a numeric ID, build the standard API URL
-                if icon_id.isdigit():
-                    url = Icons8URLs.build_icon_url(icon_id, size, fmt="png")
-                else:
-                    # If we grabbed a slug/name, and the src is from img.icons8.com, 
-                    # we try to manipulate the src directly to get a high-res version.
-                    # e.g. https://img.icons8.com/ios/50/menu.png -> https://img.icons8.com/ios/512/menu.png
-                    if 'img.icons8.com' in src:
-                        # Replace size path segment (e.g., /50/) with /512/
-                        url = re.sub(r'/\d{2,3}/', f'/{size}/', src)
-                        # Ensure it ends with .png (if it was something else)
-                        if not url.endswith('.png') and 'format=' not in url:
-                             url += '?format=png'
-                    else:
-                        # Fallback to building generic URL with the ID we found
-                        url = Icons8URLs.build_icon_url(icon_id, size, fmt="png")
-
-                icons.append(Icon(
-                    id=icon_id,
-                    name=name,
-                    url=url
-                ))
-                logger.debug(f"Found: {name} (ID: {icon_id}) URL: {url}")
+        if srcset:
+            id_match = re.search(r'id=([A-Za-z0-9_-]+)', srcset)
+            if id_match:
+                icon_id = id_match.group(1)
+                if icon_id not in seen_ids:
+                    seen_ids.add(icon_id)
+                    name = alt.replace(' icon', '').strip()
+                    
+                    icons.append(Icon(
+                        id=icon_id,
+                        name=name,
+                        url=Icons8URLs.build_icon_url(icon_id, size)
+                    ))
+                    logger.debug(f"Found: {name} (ID: {icon_id})")
     
-    logger.info(f"Robust extraction found {len(icons)} icons")
     return icons
 
 
@@ -520,15 +432,3 @@ async def scrape_collection(
     finally:
         await context.close()
         await playwright_instance.stop()
-
-
-def get_collection_icons(
-    url: str,
-    size: int = DEFAULT_SIZE,
-    email: Optional[str] = None,
-    password: Optional[str] = None,
-    headless: bool = True
-) -> list[Icon]:
-    # Returns only icons for backward compatibility
-    icons, _, _ = asyncio.run(scrape_collection(url, size, email, password, headless))
-    return icons

@@ -16,7 +16,6 @@ from .client import (
     Icons8Client,
     Icons8URLs,
     Icon,
-    sanitize_filename,
 )
 
 __all__ = [
@@ -36,5 +35,4 @@ __all__ = [
     "Icons8Client",
     "Icons8URLs",
     "Icon",
-    "sanitize_filename",
 ]

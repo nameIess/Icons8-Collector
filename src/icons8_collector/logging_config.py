@@ -57,36 +57,3 @@ def setup_logging(
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(f"icons8_collector.{name}")
-
-
-class ProgressLogger:
-    
-    def __init__(
-        self,
-        total: int,
-        logger: Optional[logging.Logger] = None,
-        prefix: str = "",
-    ) -> None:
-        self.total = total
-        self.current = 0
-        self.logger = logger
-        self.prefix = prefix
-    
-    def update(self, message: str = "", success: bool = True) -> None:
-        self.current += 1
-        status = "✓" if success else "✗"
-        progress_msg = f"[{self.current}/{self.total}] {status} {self.prefix}{message}"
-        
-        if self.logger:
-            if success:
-                self.logger.info(progress_msg)
-            else:
-                self.logger.warning(progress_msg)
-        else:
-            print(progress_msg)
-    
-    def finish(self, message: str = "Complete") -> None:
-        if self.logger:
-            self.logger.info(f"{self.prefix}{message}")
-        else:
-            print(f"{self.prefix}{message}")
