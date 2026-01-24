@@ -19,9 +19,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Multimedia :: Graphics",
     "Topic :: Utilities",
 ]
@@ -32,6 +29,7 @@ dependencies = [
     "pillow>=9.0.0",
     "playwright>=1.40.0,<2.0.0",
     "tenacity>=8.0.0,<9.0.0",
+    "colorama>=0.4.6,<1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -48,17 +46,7 @@ icons8 = "icons8_collector.cli:main"
 [project.urls]
 Homepage = "https://github.com/nameIess/Icons8-Collector"
 Repository = "https://github.com/nameIess/Icons8-Collector"
-Issues = "https://github.com/nameIess/Icons8-Collector/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["icons8_collector*"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_functions = ["test_*"]
-addopts = "-v --tb=short"
-
-[tool.setuptools.package-data]
-icons8_collector = ["py.typed"]

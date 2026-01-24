@@ -5,6 +5,9 @@ import logging
 import random
 from typing import Optional, TYPE_CHECKING, List, Dict, Any
 
+import colorama
+from colorama import Fore, Style
+
 if TYPE_CHECKING:
     from playwright.async_api import Page, BrowserContext, Locator
 
@@ -13,6 +16,8 @@ from .auth import check_login_status, perform_login, validate_credentials
 from .client import Icon, Icons8URLs, Icons8Client
 
 logger = logging.getLogger(__name__)
+
+colorama.init(autoreset=True)
 
 
 # Default configuration
@@ -59,7 +64,7 @@ async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
     os.makedirs(BROWSER_DATA_DIR, exist_ok=True)
     mode_str = "headless" if headless else "visible"
     logger.info(f"Launching browser ({mode_str})...")
-    print(f"  🌐 Launching browser ({mode_str})...")
+    print(f"{Fore.BLUE}  🌐 Launching browser ({mode_str})...{Style.RESET_ALL}")
     
     p = await async_playwright().start()
     
@@ -167,7 +172,7 @@ async def human_click(page: "Page", selector: str) -> bool:
 
 async def human_scroll(page: "Page", max_scrolls: int = 100) -> int:
     logger.debug("Starting human-like scrolling...")
-    print("  📜 Scrolling to load content (Human-like behavior)...")
+    print(f"{Fore.YELLOW}  📜 Scrolling to load content (Human-like behavior)...{Style.RESET_ALL}")
     
     last_height = await page.evaluate("document.body.scrollHeight")
     stable_count_checks = 0
@@ -303,7 +308,7 @@ async def download_files_via_browser(
     output_dir = Path(output_dir)
     
     logger.info(f"Starting browser navigation download for {len(icons)} items...")
-    print(f"  📥 Downloading {len(icons)} icons via browser navigation...")
+    print(f"{Fore.MAGENTA}  📥 Downloading {len(icons)} icons via browser navigation...{Style.RESET_ALL}")
     
     context, playwright_instance = await launch_browser(headless)
     successful_paths = []
@@ -316,7 +321,7 @@ async def download_files_via_browser(
             safe_name = safe_name.replace(' ', '_') or f"icon_{i}"
             file_path = output_dir / f"{safe_name}.png"
             
-            print(f"  [{i}/{len(icons)}] {name}...", end=" ", flush=True)
+            print(f"{Fore.WHITE}  [{i}/{len(icons)}] {name}...{Style.RESET_ALL}", end=" ", flush=True)
             
             page = None
             try:
@@ -337,17 +342,17 @@ async def download_files_via_browser(
                         with open(file_path, 'wb') as f:
                             f.write(content)
                         successful_paths.append(str(file_path))
-                        print("✓")
+                        print(f"{Fore.GREEN}✓{Style.RESET_ALL}")
                     else:
-                        print("✗ (Not a valid PNG)")
+                        print(f"{Fore.RED}✗ (Not a valid PNG){Style.RESET_ALL}")
                         logger.warning(f"Invalid PNG content for {name}")
                 else:
                     status = response.status if response else "No Response"
-                    print(f"✗ ({status})")
+                    print(f"{Fore.RED}✗ ({status}){Style.RESET_ALL}")
                     logger.warning(f"Failed to load {name}: {status}")
                     
             except Exception as e:
-                print(f"✗ ({type(e).__name__})")
+                print(f"{Fore.RED}✗ ({type(e).__name__}){Style.RESET_ALL}")
                 logger.error(f"Error downloading {name}: {e}")
             finally:
                 if page:
@@ -378,7 +383,7 @@ async def scrape_collection(
         page = await context.new_page()
         
         logger.info(f"Opening collection page: {url}")
-        print(f"  🔗 Opening collection page...")
+        print(f"{Fore.BLUE}  🔗 Opening collection page...{Style.RESET_ALL}")
         
         # Human-like: Random delay before navigation
         await asyncio.sleep(random.uniform(0.5, 1.5))
@@ -398,7 +403,7 @@ async def scrape_collection(
         
         if is_logged_in:
             logger.info("Already logged in - skipping login process")
-            print("  ✓ Already logged in!")
+            print(f"{Fore.GREEN}  ✓ Already logged in!{Style.RESET_ALL}")
         elif email and password:
             logger.info("Not logged in - attempting login...")
             print("  🔐 Logging in...")
@@ -435,7 +440,7 @@ async def scrape_collection(
         await human_scroll(page)
         
         # Extract icons
-        print("  🔍 Extracting icons...")
+        print(f"{Fore.CYAN}  🔍 Extracting icons...{Style.RESET_ALL}")
         icons = await extract_icons_robust(page, size)
         
         # Fallback to regex if DOM extraction failed
