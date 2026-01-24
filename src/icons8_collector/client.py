@@ -427,6 +427,32 @@ class Icons8Client:
 # Utility Functions
 # ============================================================================
 
+def sanitize_filename(name: str, fallback: str = "icon") -> str:
+    if not name or not isinstance(name, str):
+        return fallback
+    
+    # Remove path separators and null bytes
+    name = name.replace('/', '_').replace('\\', '_').replace('\x00', '')
+    
+    # Prevent path traversal
+    name = name.replace('..', '_')
+    
+    # Keep only safe characters
+    safe_name = "".join(c for c in name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+    safe_name = safe_name.replace(' ', '_')
+    
+    # Limit length
+    max_length = 200
+    if len(safe_name) > max_length:
+        safe_name = safe_name[:max_length]
+    
+    # Ensure non-empty result
+    if not safe_name or safe_name.strip('.') == '':
+        return fallback
+    
+    return safe_name
+
+
 def extract_icon_id_from_url(url: str) -> Optional[str]:
     match = re.search(r'id=([A-Za-z0-9_-]+)', url)
     return match.group(1) if match else None

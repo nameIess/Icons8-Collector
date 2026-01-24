@@ -138,6 +138,33 @@ async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
     return context, p
 
 
+async def human_click(page: "Page", selector: str) -> bool:
+    try:
+        locator = page.locator(selector).first
+        if not await locator.is_visible():
+            return False
+            
+        box = await locator.bounding_box()
+        if not box:
+            return False
+            
+        # Target a random point within the element
+        x = box["x"] + box["width"] / 2 + random.uniform(-5, 5)
+        y = box["y"] + box["height"] / 2 + random.uniform(-5, 5)
+        
+        await page.mouse.move(x, y, steps=random.randint(5, 15))
+        await asyncio.sleep(random.uniform(0.1, 0.3))
+        
+        await page.mouse.down()
+        await asyncio.sleep(random.uniform(0.05, 0.15)) # Hold click briefly
+        await page.mouse.up()
+        
+        return True
+    except Exception as e:
+        logger.debug(f"Human click failed for {selector}: {e}")
+        return False
+
+
 async def human_scroll(page: "Page", max_scrolls: int = 100) -> int:
     logger.debug("Starting human-like scrolling...")
     print("  📜 Scrolling to load content (Human-like behavior)...")
@@ -363,7 +390,7 @@ async def scrape_collection(
             )
         
         # Human-like: Random wait after load
-        await asyncio.sleep(random.uniform(2.0, 4.0))
+        await asyncio.sleep(random.uniform(5.0, 8.0))
         
         # Check login status
         is_logged_in = await check_login_status(page)
@@ -379,7 +406,7 @@ async def scrape_collection(
             
             logger.debug("Reloading collection page...")
             await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-            await asyncio.sleep(random.uniform(3.0, 5.0))
+            await asyncio.sleep(random.uniform(5.0, 8.0))
             
             # Verify login worked
             if not await check_login_status(page):
@@ -432,3 +459,15 @@ async def scrape_collection(
     finally:
         await context.close()
         await playwright_instance.stop()
+
+
+def get_collection_icons(
+    url: str,
+    size: int = DEFAULT_SIZE,
+    email: Optional[str] = None,
+    password: Optional[str] = None,
+    headless: bool = True
+) -> list[Icon]:
+    # Returns only icons for backward compatibility
+    icons, _, _ = asyncio.run(scrape_collection(url, size, email, password, headless))
+    return icons

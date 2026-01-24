@@ -169,7 +169,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
         help='Icons8 account email'
     )
     auth_group.add_argument(
-        '--password', '-P',
+        '--password', '-p',
         type=str,
         metavar='PASS',
         help='Icons8 account password'
