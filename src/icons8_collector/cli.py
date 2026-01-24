@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+import colorama
+from colorama import Fore, Back, Style
+
 from . import __version__
 from .logging_config import setup_logging, get_logger
 from .auth import _mask_email
@@ -16,6 +19,8 @@ from .converter import IconConverter, ConversionError
 from .exceptions import Icons8CollectorError
 
 logger = get_logger("cli")
+
+colorama.init(autoreset=True)
 
 
 # ============================================================================ 
@@ -169,7 +174,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
         help='Icons8 account email'
     )
     auth_group.add_argument(
-        '--password', '-P',
+        '--password', '-p',
         type=str,
         metavar='PASS',
         help='Icons8 account password'
@@ -246,21 +251,21 @@ async def async_run_download(
 ) -> int:
     # 1. Scrape Collection
     logger.info(f"Scraping collection: {url}")
-    print(f"\n  🔍 Scraping collection...")
+    print(f"\n{Fore.CYAN}  🔍 Scraping collection...{Style.RESET_ALL}")
     
     try:
         # We don't pass size anymore, letting scraper default or use what's needed for SVG
         # We also ignore the cookies/ua return since download_files_via_browser handles it internally
         icons, _, _ = await scrape_collection(url, email=email, password=password, headless=headless)
     except Icons8CollectorError as e:
-        print(f"\n  ❌ Error: {e}")
+        print(f"\n{Fore.RED}  ❌ Error: {e}{Style.RESET_ALL}")
         return 1
 
-    print(f"  ✓ Found {len(icons)} icons")
+    print(f"{Fore.GREEN}  ✓ Found {len(icons)} icons{Style.RESET_ALL}")
     logger.info(f"Found {len(icons)} icons")
 
     if not icons:
-        print("\n  ⚠ No icons found.")
+        print(f"\n{Fore.YELLOW}  ⚠ No icons found.{Style.RESET_ALL}")
         return 1
 
     # Prepare directories
@@ -275,11 +280,11 @@ async def async_run_download(
     downloaded_files = [Path(p) for p in downloaded_paths]
 
     if not downloaded_files:
-        print("\n  ❌ No files downloaded successfully.")
+        print(f"\n{Fore.RED}  ❌ No files downloaded successfully.{Style.RESET_ALL}")
         return 1
 
     # 3. Convert to ICO/ICNS
-    print(f"\n  🎨 Converting to {output_format.upper()}...")
+    print(f"\n{Fore.BLUE}  🎨 Converting to {output_format.upper()}...{Style.RESET_ALL}")
     converted_count = 0
     
     # Determine requested formats
@@ -289,7 +294,7 @@ async def async_run_download(
     converter = IconConverter()
     total = len(downloaded_files)
     for i, img_path in enumerate(downloaded_files, 1):
-        print(f"  [{i}/{total}] Converting {img_path.stem}...", end=" ", flush=True)
+        print(f"{Fore.WHITE}  [{i}/{total}] Converting {img_path.stem}...{Style.RESET_ALL}", end=" ", flush=True)
         try:
             # Output to the parent directory (root of output_dir), not png_dir
             converter.convert_image_to_formats(
@@ -298,7 +303,7 @@ async def async_run_download(
                 formats=requested_formats
             )
             converted_count += 1
-            print("✓")
+            print(f"{Fore.GREEN}✓{Style.RESET_ALL}")
             
             # Cleanup: Delete the source PNG after conversion
             try:
@@ -307,7 +312,7 @@ async def async_run_download(
                 pass
                 
         except ConversionError as e:
-            print("✗")
+            print(f"{Fore.RED}✗{Style.RESET_ALL}")
             logger.error(f"Conversion failed for {img_path.name}: {e}")
 
     # Cleanup: Remove the temporary PNG directory
@@ -318,15 +323,14 @@ async def async_run_download(
 
     # Summary
     print("\n")
-    print("  ╔══════════════════════════════════════════════════════════╗")
-    print("  ║                                                          ║")
-    print("  ║              ✅  PROCESS COMPLETE!  ✅                   ║")
-    print("  ║                                                          ║")
-    print("  ╚══════════════════════════════════════════════════════════╝")
+    print(Fore.GREEN + "  ╔══════════════════════════════════════════════════════════╗")
+    print(Fore.GREEN + "  ║                                                          ║")
+    print(Fore.GREEN + "  ║              " + Fore.YELLOW + "✅" + Fore.GREEN + "  PROCESS COMPLETE!  " + Fore.YELLOW + "✅" + Fore.GREEN + "                   ║")
+    print(Fore.GREEN + "  ║                                                          ║")
+    print(Fore.GREEN + "  ╚══════════════════════════════════════════════════════════╝")
     print("\n")
-    print(f"  📁 PNGs Downloaded: {len(downloaded_files)}")
-    print(f"  🎨 Icons Converted: {converted_count}")
-    print(f"  📂 Output Location: {base_path.absolute()}")
+    print(Fore.CYAN + f"  🎨 Icons Converted: {converted_count}")
+    print(Fore.MAGENTA + f"  📂 Output Location: {base_path.absolute()}")
             
     return 0
 

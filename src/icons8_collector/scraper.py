@@ -5,6 +5,9 @@ import logging
 import random
 from typing import Optional, TYPE_CHECKING, List, Dict, Any
 
+import colorama
+from colorama import Fore, Style
+
 if TYPE_CHECKING:
     from playwright.async_api import Page, BrowserContext, Locator
 
@@ -13,6 +16,8 @@ from .auth import check_login_status, perform_login, validate_credentials
 from .client import Icon, Icons8URLs, Icons8Client
 
 logger = logging.getLogger(__name__)
+
+colorama.init(autoreset=True)
 
 
 # Default configuration
@@ -59,7 +64,7 @@ async def launch_browser(headless: bool = True) -> tuple["BrowserContext", any]:
     os.makedirs(BROWSER_DATA_DIR, exist_ok=True)
     mode_str = "headless" if headless else "visible"
     logger.info(f"Launching browser ({mode_str})...")
-    print(f"  🌐 Launching browser ({mode_str})...")
+    print(f"{Fore.BLUE}  🌐 Launching browser ({mode_str})...{Style.RESET_ALL}")
     
     p = await async_playwright().start()
     
@@ -167,7 +172,7 @@ async def human_click(page: "Page", selector: str) -> bool:
 
 async def human_scroll(page: "Page", max_scrolls: int = 100) -> int:
     logger.debug("Starting human-like scrolling...")
-    print("  📜 Scrolling to load content (Human-like behavior)...")
+    print(f"{Fore.YELLOW}  📜 Scrolling to load content (Human-like behavior)...{Style.RESET_ALL}")
     
     last_height = await page.evaluate("document.body.scrollHeight")
     stable_count_checks = 0
@@ -218,112 +223,51 @@ async def human_scroll(page: "Page", max_scrolls: int = 100) -> int:
             last_height = new_height
             
         if (i + 1) % 5 == 0:
+            logger.info(f"Scrolled {i+1} times, height: {new_height}")
             logger.debug(f"Scroll {i+1}: Height {new_height}px")
             
     return last_height
 
 
 async def extract_icons_robust(page: "Page", size: int) -> list[Icon]:
-    logger.info("Extracting icons using robust heuristic...")
+    logger.info("Extracting icons using DOM locator...")
     
-    # Execute JS to find candidates
-    raw_images = await page.evaluate('''() => {
-        // Try to find the main grid container first
-        const grid = document.querySelector('.app-collection-view, .collection-grid, main') || document.body;
-        
-        const images = Array.from(grid.querySelectorAll('img'));
-        return images.map(img => {
-            const rect = img.getBoundingClientRect();
-            // Check if inside a known icon container class
-            const isIconContainer = img.closest('.app-grid-icon') !== null || 
-                                  img.closest('.collection-icon') !== null;
-            
-            return {
-                src: img.getAttribute('src'),
-                srcset: img.getAttribute('srcset'),
-                alt: img.getAttribute('alt'),
-                width: rect.width,
-                height: rect.height,
-                top: rect.top,
-                isIconContainer: isIconContainer,
-                isVisible: rect.width > 20 && rect.height > 20 && rect.top >= 0
-            };
-        });
-    }''')
+    icon_imgs = page.locator('div.app-grid-icon__image img')
+    count = await icon_imgs.count()
+    
+    if count == 0:
+        logger.debug("Trying alternative selector: img[srcset*='icons8']")
+        icon_imgs = page.locator('img[srcset*="icons8.com"]')
+        count = await icon_imgs.count()
+    
+    if count == 0:
+        return []
+    
+    logger.info(f"Found {count} icon images via DOM")
     
     icons = []
     seen_ids: set[str] = set()
     
-    # Heuristic: Filter images. 
-    # If we found items with isIconContainer=True, prefer those.
-    has_explicit_containers = any(img['isIconContainer'] for img in raw_images)
-    
-    for img in raw_images:
-        if not img['isVisible']:
-            continue
-            
-        # If we found explicit containers, ignore random images that aren't inside one
-        if has_explicit_containers and not img['isIconContainer']:
-            continue
-            
-        src = img['src'] or ''
-        srcset = img['srcset'] or ''
+    for i in range(count):
+        img = icon_imgs.nth(i)
+        srcset = await img.get_attribute('srcset')
+        alt = await img.get_attribute('alt') or f'icon_{i}'
         
-        if 'icons8.com' not in src and 'icons8.com' not in srcset:
-            continue
-            
-        # Check 3: Extract ID - Prioritize Numeric IDs
-        # Format usually: ...id=12345... or /icon/12345/
-        combined_url = src + srcset
-        
-        # Try strictly numeric ID first (most reliable for API)
-        id_match = re.search(r'[?&]id=(\d+)', combined_url)
-        if not id_match:
-            id_match = re.search(r'/icon/(\d+)/', combined_url)
-            
-        # Fallback to alphanumeric if numeric fails (some icons might use slugs, though rare for API)
-        if not id_match:
-             id_match = re.search(r'[?&]id=([A-Za-z0-9_-]+)', combined_url)
-        if not id_match:
-             id_match = re.search(r'/icon/([A-Za-z0-9_-]+)/', combined_url)
-            
-        if id_match:
-            icon_id = id_match.group(1)
-            
-            # Filter out common UI icons by ID if known, or rely on container
-            if icon_id not in seen_ids:
-                seen_ids.add(icon_id)
-                
-                raw_name = img['alt'] or f'icon_{icon_id}'
-                name = raw_name.replace(' icon', '').strip()
-                if not name:
-                    name = f'icon-{icon_id}'
-                
-                # If we have a numeric ID, build the standard API URL
-                if icon_id.isdigit():
-                    url = Icons8URLs.build_icon_url(icon_id, size, fmt="png")
-                else:
-                    # If we grabbed a slug/name, and the src is from img.icons8.com, 
-                    # we try to manipulate the src directly to get a high-res version.
-                    # e.g. https://img.icons8.com/ios/50/menu.png -> https://img.icons8.com/ios/512/menu.png
-                    if 'img.icons8.com' in src:
-                        # Replace size path segment (e.g., /50/) with /512/
-                        url = re.sub(r'/\d{2,3}/', f'/{size}/', src)
-                        # Ensure it ends with .png (if it was something else)
-                        if not url.endswith('.png') and 'format=' not in url:
-                             url += '?format=png'
-                    else:
-                        # Fallback to building generic URL with the ID we found
-                        url = Icons8URLs.build_icon_url(icon_id, size, fmt="png")
-
-                icons.append(Icon(
-                    id=icon_id,
-                    name=name,
-                    url=url
-                ))
-                logger.debug(f"Found: {name} (ID: {icon_id}) URL: {url}")
+        if srcset:
+            id_match = re.search(r'id=([A-Za-z0-9_-]+)', srcset)
+            if id_match:
+                icon_id = id_match.group(1)
+                if icon_id not in seen_ids:
+                    seen_ids.add(icon_id)
+                    name = alt.replace(' icon', '').strip()
+                    
+                    icons.append(Icon(
+                        id=icon_id,
+                        name=name,
+                        url=Icons8URLs.build_icon_url(icon_id, size)
+                    ))
+                    logger.debug(f"Found: {name} (ID: {icon_id})")
     
-    logger.info(f"Robust extraction found {len(icons)} icons")
     return icons
 
 
@@ -364,7 +308,7 @@ async def download_files_via_browser(
     output_dir = Path(output_dir)
     
     logger.info(f"Starting browser navigation download for {len(icons)} items...")
-    print(f"  📥 Downloading {len(icons)} icons via browser navigation...")
+    print(f"{Fore.MAGENTA}  📥 Downloading {len(icons)} icons via browser navigation...{Style.RESET_ALL}")
     
     context, playwright_instance = await launch_browser(headless)
     successful_paths = []
@@ -377,7 +321,7 @@ async def download_files_via_browser(
             safe_name = safe_name.replace(' ', '_') or f"icon_{i}"
             file_path = output_dir / f"{safe_name}.png"
             
-            print(f"  [{i}/{len(icons)}] {name}...", end=" ", flush=True)
+            print(f"{Fore.WHITE}  [{i}/{len(icons)}] {name}...{Style.RESET_ALL}", end=" ", flush=True)
             
             page = None
             try:
@@ -398,17 +342,17 @@ async def download_files_via_browser(
                         with open(file_path, 'wb') as f:
                             f.write(content)
                         successful_paths.append(str(file_path))
-                        print("✓")
+                        print(f"{Fore.GREEN}✓{Style.RESET_ALL}")
                     else:
-                        print("✗ (Not a valid PNG)")
+                        print(f"{Fore.RED}✗ (Not a valid PNG){Style.RESET_ALL}")
                         logger.warning(f"Invalid PNG content for {name}")
                 else:
                     status = response.status if response else "No Response"
-                    print(f"✗ ({status})")
+                    print(f"{Fore.RED}✗ ({status}){Style.RESET_ALL}")
                     logger.warning(f"Failed to load {name}: {status}")
                     
             except Exception as e:
-                print(f"✗ ({type(e).__name__})")
+                print(f"{Fore.RED}✗ ({type(e).__name__}){Style.RESET_ALL}")
                 logger.error(f"Error downloading {name}: {e}")
             finally:
                 if page:
@@ -439,7 +383,7 @@ async def scrape_collection(
         page = await context.new_page()
         
         logger.info(f"Opening collection page: {url}")
-        print(f"  🔗 Opening collection page...")
+        print(f"{Fore.BLUE}  🔗 Opening collection page...{Style.RESET_ALL}")
         
         # Human-like: Random delay before navigation
         await asyncio.sleep(random.uniform(0.5, 1.5))
@@ -451,7 +395,7 @@ async def scrape_collection(
             )
         
         # Human-like: Random wait after load
-        await asyncio.sleep(random.uniform(2.0, 4.0))
+        await asyncio.sleep(random.uniform(5.0, 8.0))
         
         # Check login status
         is_logged_in = await check_login_status(page)
@@ -459,7 +403,7 @@ async def scrape_collection(
         
         if is_logged_in:
             logger.info("Already logged in - skipping login process")
-            print("  ✓ Already logged in!")
+            print(f"{Fore.GREEN}  ✓ Already logged in!{Style.RESET_ALL}")
         elif email and password:
             logger.info("Not logged in - attempting login...")
             print("  🔐 Logging in...")
@@ -467,7 +411,7 @@ async def scrape_collection(
             
             logger.debug("Reloading collection page...")
             await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-            await asyncio.sleep(random.uniform(3.0, 5.0))
+            await asyncio.sleep(random.uniform(5.0, 8.0))
             
             # Verify login worked
             if not await check_login_status(page):
@@ -496,7 +440,7 @@ async def scrape_collection(
         await human_scroll(page)
         
         # Extract icons
-        print("  🔍 Extracting icons...")
+        print(f"{Fore.CYAN}  🔍 Extracting icons...{Style.RESET_ALL}")
         icons = await extract_icons_robust(page, size)
         
         # Fallback to regex if DOM extraction failed
