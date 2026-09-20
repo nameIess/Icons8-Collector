@@ -1,153 +1,88 @@
-# 🎨 Icons8 Collector
+# IconFlow
 
-_A production-grade CLI tool to download and convert icons from Icons8 collections_
+A production-grade, browser-only icon export workspace.
 
----
+## Rebuild
 
-## 🚀 Overview
+`web-app-production` is a clean web rebuild. The previous Python CLI and Playwright implementation is no longer part of the application.
 
-**Icons8 Collector** is a powerful Python CLI tool that automates the process of downloading high-quality icons from your Icons8 collections. It features stealthy web scraping, session-cached authentication, and automatic conversion to production-ready multi-size ICO and ICNS files for Windows and macOS applications.
+The app intentionally does **not** automate or scrape Icons8. Icons8's current Site Terms prohibit data-mining, robots, and similar extraction methods. Instead, use Icons8's supported **Export** action to export a collection, then import the resulting archive here. This keeps account credentials and sessions out of the application.
 
-Perfect for developers and designers who need perfectly scaled icons without manual downloading and resizing.
+Icons8's official icon documentation describes collection export as an archive workflow and documents PNG/SVG collection exports. Free accounts have asset limitations and attribution requirements; users remain responsible for following the current license.
 
----
+## Features
 
-## ✨ Key Features
+- macOS/iOS-inspired glass interface
+- Responsive desktop and mobile workspace
+- Drag-and-drop ZIP collection import
+- PNG, SVG, JPEG and WebP import
+- Local-only processing: no backend and no uploaded asset data
+- PNG generation at 16, 24, 32, 48, 64, 96, 128, 256, 512 and 1024 px
+- Multi-resolution Windows ICO generation
+- Multi-resolution macOS ICNS generation
+- Original SVG preservation when supplied
+- Batch ZIP export
+- Selection, filtering and removal
+- No Icons8 password handling
+- No API secret required
 
-- 🔐 **Smart Authentication**: Persistent session caching - login once, collect forever
-- 🕵️ **Stealth Scraping**: Advanced Playwright-based browser automation to bypass restrictions
-- 📦 **Multi-Format Output**: Generate ICO, ICNS, or both formats with all standard OS resolutions (16px to 1024px)
-- 🎨 **Colorful TUI**: Beautiful colored terminal interface with real-time progress feedback
-- 🧹 **Clean Workflow**: Automatic cleanup of temporary files after conversion
-- 🏃‍♂️ **Flexible Modes**: Interactive CLI or headless/scripted operation
-- ⚡ **High Performance**: Concurrent downloading and efficient conversion pipeline
+## Run
 
----
-
-## 🛠️ Quick Start
-
-### Prerequisites
-
-- Python 3.10 or higher
-- Git (optional, for cloning)
-
-### Installation
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/nameIess/Icons8-Collector.git
-   cd Icons8-Collector
-   ```
-
-   Or [Download as ZIP](https://github.com/nameIess/Icons8-Collector/archive/refs/heads/master.zip) and extract.
-
-2. **Create virtual environment:**
-
-   ```bash
-   python -m venv icon-venv
-   # Windows:
-   .\icon-venv\Scripts\activate
-   # macOS/Linux:
-   source icon-venv/bin/activate
-   ```
-
-3. **Install the package:**
-
-   ```bash
-   pip install -e .
-   ```
-
-4. **Install browser engine:**
-   ```bash
-   python -m playwright install chromium
-   ```
-
----
-
-## 📖 Usage
-
-### Interactive Mode (Recommended)
+Node.js 20+ is recommended.
 
 ```bash
-icons8-collector --interactive
+npm install
+npm run dev
 ```
 
-### Command Line Mode
+Production build:
 
 ```bash
-icons8-collector --url "https://icons8.com/icons/collections/YOUR_COLLECTION_ID" --format ico
+npm run build
+npm run preview
 ```
 
-### Examples
+## Workflow
 
-**Download as ICO files:**
+1. Open your collection in Icons8.
+2. Use Icons8's own **Export** action.
+3. Drop the resulting ZIP into IconFlow.
+4. Select the assets you need.
+5. Choose PNG resolutions and/or SVG, ICO, ICNS.
+6. Build the export ZIP.
+
+For discovery/search, use the official Icons8 search page and download/export assets you are licensed to use, then import those files into IconFlow.
+
+## Output
+
+- PNG: configurable 16–1024 px
+- ICO: 16–256 px multi-image container
+- ICNS: 16–1024 px PNG-backed container
+- SVG: original source preserved when available
+
+Raster sources are resized with high-quality browser canvas interpolation. SVG sources are rasterized only for generated PNG/ICO/ICNS output.
+
+## Deployment
+
+The build is static:
 
 ```bash
-icons8-collector -u "https://icons8.com/icons/collections/abc123" -f ico -o my-icons
+npm run build
 ```
 
-**Download both ICO and ICNS:**
+Deploy `dist/` to a static host such as Cloudflare Pages, Netlify, GitHub Pages, or another static hosting provider.
 
-```bash
-icons8-collector --url "https://icons8.com/icons/collections/abc123" --format both
-```
+No server-side environment variables are required.
 
-**Debug mode with visible browser:**
+## Quality gates
 
-```bash
-icons8-collector -u "https://icons8.com/icons/collections/abc123" --visible --verbose
-```
-
----
-
-## ⚙️ Command Line Options
-
-| Option          | Short | Description                          | Default      |
-| --------------- | ----- | ------------------------------------ | ------------ |
-| `--url`         | `-u`  | Icons8 collection URL                | **Required** |
-| `--email`       | `-e`  | Icons8 account email                 | Optional     |
-| `--password`    | `-p`  | Icons8 account password              | Optional     |
-| `--format`      | `-f`  | Output format: `ico`, `icns`, `both` | `ico`        |
-| `--output`      | `-o`  | Output directory                     | `icons`      |
-| `--interactive` | `-i`  | Run in interactive mode              | `false`      |
-| `--visible`     |       | Show browser window                  | `headless`   |
-| `--verbose`     | `-v`  | Enable verbose logging               | `false`      |
-| `--debug`       |       | Enable debug logging                 | `false`      |
-| `--version`     | `-V`  | Show version                         |              |
-| `--help`        | `-h`  | Show help                            |              |
-
----
-
-## 🏗️ Project Structure
-
-```
-Icons8-Collector/
-├── src/icons8_collector/
-│   ├── __init__.py
-│   ├── cli.py           # Main CLI interface
-│   ├── scraper.py       # Web scraping logic
-│   ├── converter.py     # Icon conversion utilities
-│   ├── auth.py          # Authentication handling
-│   ├── client.py        # Icons8 API client
-│   ├── exceptions.py    # Custom exceptions
-│   └── logging_config.py # Logging configuration
-├── pyproject.toml       # Project configuration
-├── requirements.txt     # Dependencies
-├── README.md           # This file
-└── LICENSE             # MIT License
-```
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](License) file for details.
-
----
-
-## ⚠️ Disclaimer
-
-This tool is for personal use with Icons8 collections you have access to. Please respect Icons8's terms of service and copyright. The authors are not responsible for misuse.
-
----
+Before deployment:
+- `npm run build`
+- ZIP containing mixed SVG and PNG assets
+- Duplicate filenames
+- Empty selection
+- Every PNG resolution
+- ICO and ICNS opening on target operating systems
+- Large collection import
+- Mobile viewport
+- Chromium, Firefox and Safari
